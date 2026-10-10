@@ -27,21 +27,23 @@
     @media print {
       .no-print { display: none !important; }
       .print-only { display: block !important; }
-      body { background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; }
+      body { background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
       @page {
         size: A4 portrait;
-        margin: 0mm;
+        margin: 0;
       }
       #document-preview {
         width: 210mm !important;
         height: 297mm !important;
         max-height: 297mm !important;
+        min-height: 297mm !important;
         overflow: hidden !important;
         box-shadow: none !important;
         border: none !important;
-        padding: 8mm !important;
+        padding: 6mm !important;
         margin: 0 !important;
         page-break-after: avoid !important;
+        page-break-before: avoid !important;
         page-break-inside: avoid !important;
       }
       .document-watermark { opacity: 0.04 !important; }
@@ -1410,7 +1412,7 @@
         filename:     `AZAD_WATTAN_${docType}_${invNo}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait', putOnlyUsedFonts: true }
       };
       html2pdf().set(opt).from(element).save();
     }
