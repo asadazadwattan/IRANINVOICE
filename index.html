@@ -291,7 +291,7 @@
                 <input type="number" id="totalAmount" class="w-full text-xs p-2 border border-slate-300 rounded font-bold text-emerald-700" value="37300" oninput="handleAmountInput()">
               </div>
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Invoice Description</label>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Invoice Deion</label>
                 <input type="text" id="invoiceGoodsDesc" class="w-full text-xs p-2 border border-slate-300 rounded uppercase" value="USED AUTO PARTS" oninput="updatePreview()">
               </div>
             </div>
@@ -310,7 +310,7 @@
 
             <!-- Editable Quick Add Suggestions Management -->
             <div class="space-y-1.5">
-              <p class="text-[10px] text-slate-500 font-medium">Quick add description list (Click chip to insert):</p>
+              <p class="text-[10px] text-slate-500 font-medium">Quick add deion list (Click chip to insert):</p>
               
               <!-- Add New Suggestion Input -->
               <div class="flex gap-1.5">
@@ -492,7 +492,7 @@
                     <thead>
                       <tr class="bg-slate-100 font-bold text-left">
                         <th class="w-1/4">Marks & Nos.</th>
-                        <th class="w-5/12">Description</th>
+                        <th class="w-5/12">Deion</th>
                         <th class="w-1/12 text-center">Quantity</th>
                         <th class="w-1/12 text-right">U/Price</th>
                         <th class="w-1/6 text-right">Amount</th>
@@ -727,8 +727,7 @@
       </div>
     </div>
   </div>
-
-  <script>
+<script>
     // PRESET CONSIGNEES
     const PRESET_CONSIGNEES = [
       {
@@ -967,8 +966,8 @@
             btn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> Firebase Connected`;
             btn.className = "bg-emerald-950 text-emerald-400 text-xs font-semibold px-3 py-2 rounded-md transition flex items-center gap-1.5 border border-emerald-800 shadow";
             
-            // Automatically pull all cloud invoices on startup
-            loadInvoicesFromCloud();
+            // Listen to real-time updates from Cloud Firestore
+            listenToCloudInvoices();
             return;
           }
         } catch(e) {
@@ -979,25 +978,23 @@
       btn.className = "bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-semibold px-3 py-2 rounded-md transition flex items-center gap-1.5 border border-slate-700 shadow";
     }
 
-    function loadInvoicesFromCloud() {
+    function listenToCloudInvoices() {
       if (!db) return;
-      db.collection('invoices').get()
-        .then((querySnapshot) => {
-          const cloudInvoices = [];
-          querySnapshot.forEach((doc) => {
-            cloudInvoices.push(doc.data());
-          });
-          if (cloudInvoices.length > 0) {
-            savedInvoices = cloudInvoices;
-            saveInvoicesToStorage();
-            renderInvoicesList();
-            renderCustomersList();
-            console.log("Loaded invoices from cloud Firebase.");
-          }
-        })
-        .catch((error) => {
-          console.error("Error loading cloud invoices: ", error);
+      db.collection('invoices').onSnapshot((snapshot) => {
+        const cloudInvoices = [];
+        snapshot.forEach((doc) => {
+          cloudInvoices.push(doc.data());
         });
+        if (cloudInvoices.length > 0) {
+          savedInvoices = cloudInvoices;
+          saveInvoicesToStorage();
+          renderInvoicesList();
+          renderCustomersList();
+          console.log("Synced invoices from cloud Firebase in real-time.");
+        }
+      }, (error) => {
+        console.error("Cloud sync error: ", error);
+      });
     }
 
     function changeTemplateStyle() {
@@ -1494,7 +1491,7 @@
             alert("Saved locally, but failed to sync to Firebase.");
           });
       } else {
-        alert("Saved locally! Connect Firebase to sync across devices/domains.");
+        alert("Saved locally! Click Firebase Setup to connect cloud sync.");
       }
 
       renderInvoicesList();
@@ -1791,5 +1788,6 @@
       html2pdf().set(opt).from(element).save();
     }
   </script>
+  
 </body>
 </html>
