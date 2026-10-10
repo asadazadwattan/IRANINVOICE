@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AZAD WATTAN - Invoice & Packing List Generator</title>
+  <title>AZAD WATTAN - Invoice & Packing List System</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts -->
@@ -46,7 +46,6 @@
       padding: 3px 5px;
       font-size: 10px;
     }
-    /* Style for seamless inner packing list rows */
     .document-table td.no-border-y {
       border-top: none !important;
       border-bottom: none !important;
@@ -66,7 +65,6 @@
       background: #94a3b8;
     }
 
-    /* Template Variations */
     .template-modern .document-table th {
       background-color: #fef3c7 !important;
       color: #78350f !important;
@@ -109,11 +107,11 @@
         </button>
       </div>
 
-      <!-- Quick Action Buttons & Firebase Config Button -->
+      <!-- Quick Action Buttons & Firebase Status Indicator -->
       <div class="flex items-center gap-2">
-        <button onclick="openFirebaseModal()" id="btn-firebase-status" class="bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-semibold px-3 py-2 rounded-md transition flex items-center gap-1.5 border border-slate-700 shadow">
-          <i class="fa-solid fa-fire text-amber-500"></i> Firebase Setup
-        </button>
+        <div id="btn-firebase-status" class="bg-slate-800 text-amber-400 text-xs font-semibold px-3 py-2 rounded-md flex items-center gap-1.5 border border-slate-700 shadow">
+          <i class="fa-solid fa-fire text-amber-500 animate-pulse"></i> Connecting Cloud...
+        </div>
         <button onclick="createNewInvoice()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-md transition flex items-center gap-1.5 shadow">
           <i class="fa-solid fa-plus"></i> New Document
         </button>
@@ -127,7 +125,7 @@
     <!-- TAB 1: EDITOR & PREVIEW VIEW -->
     <div id="view-editor" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
       
-      <!-- LEFT FORM COLUMN (lg:col-span-5) -->
+      <!-- LEFT FORM COLUMN -->
       <div class="lg:col-span-5 bg-white p-5 rounded-xl shadow-md border border-slate-200 no-print flex flex-col space-y-5">
         <div class="flex justify-between items-center pb-3 border-b border-slate-100">
           <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
@@ -137,19 +135,17 @@
         </div>
 
         <form id="doc-form" class="space-y-4 custom-scrollbar overflow-y-auto max-h-[calc(100vh-180px)] pr-1">
-          <!-- Document Controls Header -->
           <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Invoice No</label>
-              <input type="text" id="invoiceNo" class="w-full text-xs p-2 border border-slate-300 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none font-semibold text-slate-800" value="24621" oninput="updatePreview()">
+              <input type="text" id="invoiceNo" class="w-full text-xs p-2 border border-slate-300 rounded font-semibold text-slate-800" value="24621" oninput="updatePreview()">
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Date</label>
-              <input type="date" id="docDate" class="w-full text-xs p-2 border border-slate-300 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none" onchange="updatePreview()">
+              <input type="date" id="docDate" class="w-full text-xs p-2 border border-slate-300 rounded" onchange="updatePreview()">
             </div>
           </div>
 
-          <!-- Consignee Selection Section -->
           <div class="bg-amber-50/50 p-3 rounded-lg border border-amber-200">
             <div class="flex justify-between items-center mb-1.5">
               <label class="block text-xs font-bold text-slate-800">Messrs / Consignee</label>
@@ -157,8 +153,7 @@
                 <i class="fa-solid fa-plus text-amber-600"></i> Add Consignee
               </button>
             </div>
-            <select id="consigneeSelect" onchange="onConsigneeChange()" class="w-full text-xs p-2 border border-slate-300 rounded bg-white font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none mb-2">
-              <!-- Options loaded dynamically -->
+            <select id="consigneeSelect" onchange="onConsigneeChange()" class="w-full text-xs p-2 border border-slate-300 rounded bg-white font-medium mb-2">
             </select>
 
             <div class="space-y-2 mt-2">
@@ -183,13 +178,11 @@
             </div>
           </div>
 
-          <!-- Customer / Shipper Row -->
           <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
             <label class="block text-xs font-semibold text-slate-700 mb-1">Customer / Shipper Name</label>
-            <input type="text" id="customerShipper" class="w-full text-xs p-2 border border-slate-300 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none font-semibold uppercase" value="MATIULLAH SAMIULLAH" oninput="updatePreview()">
+            <input type="text" id="customerShipper" class="w-full text-xs p-2 border border-slate-300 rounded font-semibold uppercase" value="MATIULLAH SAMIULLAH" oninput="updatePreview()">
           </div>
 
-          <!-- Shipment Info Section -->
           <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Port of Loading</label>
@@ -203,51 +196,34 @@
               <label class="block text-xs font-semibold text-slate-600 mb-1">Final Destination</label>
               <input type="text" id="finalDestination" class="w-full text-xs p-2 border border-slate-300 rounded uppercase" value="AFGHANISTAN" oninput="updatePreview()">
             </div>
-
-            <!-- B/L No. Field -->
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">B/L No.</label>
               <input type="text" id="blNo" class="w-full text-xs p-2 border border-slate-300 rounded uppercase font-semibold" value="JEABVS16004116" oninput="updatePreview()">
             </div>
-
-            <!-- Ocean Vessel Field -->
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Ocean Vessel</label>
               <input type="text" id="oceanVessel" class="w-full text-xs p-2 border border-slate-300 rounded uppercase font-semibold" value="FARAHI 2" oninput="updatePreview()">
             </div>
-
-            <!-- Container Type & Qty Selector -->
             <div>
               <div class="flex justify-between items-center mb-1">
                 <label class="block text-xs font-semibold text-slate-600">Container Type & Qty</label>
-                <button type="button" onclick="openContainerTypeModal()" class="text-xs text-amber-700 hover:text-amber-900 font-bold bg-amber-100 hover:bg-amber-200 px-1.5 py-0.5 rounded transition" title="Add New Container Type">
+                <button type="button" onclick="openContainerTypeModal()" class="text-xs text-amber-700 hover:text-amber-900 font-bold bg-amber-100 px-1.5 py-0.5 rounded transition">
                   <i class="fa-solid fa-plus text-[10px]"></i>
                 </button>
               </div>
               <div class="grid grid-cols-3 gap-1">
-                <select id="containerType" class="col-span-2 text-xs p-2 border border-slate-300 rounded uppercase bg-white font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none" onchange="updatePreview()">
-                  <!-- Dynamically Rendered -->
+                <select id="containerType" class="col-span-2 text-xs p-2 border border-slate-300 rounded uppercase bg-white font-medium" onchange="updatePreview()">
                 </select>
                 <select id="containerQty" class="text-xs p-2 border border-slate-300 rounded bg-white font-semibold text-center" onchange="updatePreview()">
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                  <option value="5">5</option>
-                  <option value="6">6</option>
-                  <option value="7">7</option>
-                  <option value="8">8</option>
-                  <option value="9">9</option>
-                  <option value="10">10</option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
                 </select>
               </div>
             </div>
 
-            <!-- Dynamic Container Numbers List -->
             <div class="col-span-2 bg-white p-2.5 rounded border border-slate-200">
               <div class="flex justify-between items-center mb-1.5">
                 <label class="block text-xs font-semibold text-slate-700">Container Number(s)</label>
-                <button type="button" onclick="addContainerNumberRow()" class="text-xs text-amber-700 hover:text-amber-900 font-bold bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded transition flex items-center gap-1">
+                <button type="button" onclick="addContainerNumberRow()" class="text-xs text-amber-700 font-bold bg-amber-100 px-2 py-0.5 rounded transition flex items-center gap-1">
                   <i class="fa-solid fa-plus text-[10px]"></i> Add Container
                 </button>
               </div>
@@ -258,32 +234,24 @@
               </div>
             </div>
 
-            <!-- Seal Number Field -->
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Seal No.</label>
               <input type="text" id="sealNo" class="w-full text-xs p-2 border border-slate-300 rounded uppercase font-semibold" value="D2297065" oninput="updatePreview()">
             </div>
-
-            <!-- Country of Origin Field -->
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Country of Origin</label>
               <input type="text" id="originVal" class="w-full text-xs p-2 border border-slate-300 rounded uppercase font-semibold" value="KOBE JAPAN" oninput="updatePreview()">
             </div>
-
-            <!-- Weight Field -->
             <div class="col-span-2">
               <label class="block text-xs font-semibold text-slate-600 mb-1">Weight</label>
               <input type="text" id="weightVal" class="w-full text-xs p-2 border border-slate-300 rounded uppercase font-semibold" value="27,690 KGS" oninput="updatePreview()">
             </div>
-
-            <!-- Extra Cargo/Container Comments Field -->
             <div class="col-span-2">
               <label class="block text-xs font-semibold text-slate-600 mb-1">Container/Cargo Extra Comments</label>
-              <textarea id="cargoComments" rows="2" class="w-full text-xs p-2 border border-slate-300 rounded uppercase font-medium" placeholder="Additional remarks or notes..." oninput="updatePreview()"></textarea>
+              <textarea id="cargoComments" rows="2" class="w-full text-xs p-2 border border-slate-300 rounded uppercase font-medium" placeholder="Additional remarks..." oninput="updatePreview()"></textarea>
             </div>
           </div>
 
-          <!-- Financials Section -->
           <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-3">
             <div class="grid grid-cols-2 gap-3">
               <div>
@@ -291,7 +259,7 @@
                 <input type="number" id="totalAmount" class="w-full text-xs p-2 border border-slate-300 rounded font-bold text-emerald-700" value="37300" oninput="handleAmountInput()">
               </div>
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Invoice Deion</label>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Invoice Description</label>
                 <input type="text" id="invoiceGoodsDesc" class="w-full text-xs p-2 border border-slate-300 rounded uppercase" value="USED AUTO PARTS" oninput="updatePreview()">
               </div>
             </div>
@@ -301,34 +269,25 @@
             </div>
           </div>
 
-          <!-- Items List Section (Packing List) -->
           <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-3">
             <div class="flex justify-between items-center">
               <label class="block text-xs font-bold text-slate-800">Packing List Items</label>
               <span id="items-count-badge" class="text-[10px] bg-slate-200 px-2 py-0.5 rounded text-slate-700 font-bold">0 Items</span>
             </div>
 
-            <!-- Editable Quick Add Suggestions Management -->
             <div class="space-y-1.5">
-              <p class="text-[10px] text-slate-500 font-medium">Quick add deion list (Click chip to insert):</p>
-              
-              <!-- Add New Suggestion Input -->
+              <p class="text-[10px] text-slate-500 font-medium">Quick add description list (Click chip to insert):</p>
               <div class="flex gap-1.5">
                 <input type="text" id="new-keyword-input" placeholder="Type new keyword..." class="text-xs p-1.5 border border-slate-300 rounded flex-1 uppercase">
                 <button type="button" onclick="addNewSuggestionKeyword()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-2.5 py-1 rounded transition">
                   <i class="fa-solid fa-plus text-[10px]"></i> Add Keyword
                 </button>
               </div>
-
-              <!-- Suggestion Chips Container -->
               <div class="flex flex-wrap gap-1 max-h-28 overflow-y-auto custom-scrollbar p-1 border border-slate-200 rounded bg-white" id="suggestion-chips">
-                <!-- Chips injected dynamically -->
               </div>
             </div>
 
-            <!-- Dynamic Items Container -->
             <div id="items-container" class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-1">
-              <!-- Item rows injected here -->
             </div>
 
             <button type="button" onclick="addPackingItem()" class="w-full py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-semibold rounded border border-slate-300 transition flex items-center justify-center gap-1">
@@ -336,7 +295,6 @@
             </button>
           </div>
 
-          <!-- Form Action Buttons -->
           <div class="pt-2 flex gap-2">
             <button type="button" onclick="saveCurrentInvoice()" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-lg shadow transition flex items-center justify-center gap-2 text-xs">
               <i class="fa-solid fa-floppy-disk"></i> Save Document
@@ -345,9 +303,8 @@
         </form>
       </div>
 
-      <!-- RIGHT PREVIEW COLUMN (lg:col-span-7) -->
+      <!-- RIGHT PREVIEW COLUMN -->
       <div class="lg:col-span-7 flex flex-col space-y-4">
-        <!-- Preview Actions Header -->
         <div class="bg-white p-3 rounded-xl shadow-md border border-slate-200 flex flex-wrap justify-between items-center gap-3 no-print">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Preview Mode:</span>
@@ -360,10 +317,9 @@
               </button>
             </div>
 
-            <!-- Dropdown Menu of Professional Templates -->
             <div class="flex items-center gap-1.5 ml-2">
               <label for="templateSelect" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Template Style:</label>
-              <select id="templateSelect" onchange="changeTemplateStyle()" class="text-xs p-1.5 border border-slate-300 rounded bg-white font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+              <select id="templateSelect" onchange="changeTemplateStyle()" class="text-xs p-1.5 border border-slate-300 rounded bg-white font-semibold">
                 <option value="template-classic" selected>Classic Clean</option>
                 <option value="template-modern">Modern Bold</option>
                 <option value="template-corporate">Corporate Blue</option>
@@ -382,23 +338,18 @@
           </div>
         </div>
 
-        <!-- Printable Page Container -->
         <div class="overflow-x-auto pb-6 flex justify-center">
           <div id="document-preview" class="bg-white shadow-2xl print-font text-black p-6 rounded-sm border border-slate-300 template-classic relative" style="width: 210mm; height: 297mm; max-height: 297mm; box-sizing: border-box; overflow: hidden;">
-            
-            <!-- Watermark Logo -->
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0 document-watermark" style="opacity: 0.05;">
               <img src="logo.png" alt="Watermark" class="w-[350px] h-[350px] object-contain">
             </div>
 
-            <!-- Content Container Above Watermark -->
             <div class="relative z-10 flex flex-col justify-between h-full">
               <div>
-                <!-- Document Header -->
                 <div class="flex items-center gap-3 pb-2 mb-2 border-b-2 border-black">
                   <img src="logo.png" alt="AZAD WATTAN" class="w-14 h-14 object-contain shrink-0">
                   <div class="flex-1">
-                    <h1 class="text-xl font-black tracking-tight text-black uppercase" style="font-family: 'Arial', sans-serif;">AZAD WATTAN GENERAL TRDG. CO.</h1>
+                    <h1 class="text-xl font-black tracking-tight text-black uppercase">AZAD WATTAN GENERAL TRDG. CO.</h1>
                     <p class="text-[10px] font-bold text-black mt-0.5">Tasneem Plaza Off # 502, Near Jan's Baker, 6-Saddar Road Peshawar, Pakistan</p>
                     <p class="text-[9px] font-bold text-black mt-0.5 flex flex-wrap gap-x-3 items-center">
                       <span><i class="fa-solid fa-phone text-[9px] mr-0.5"></i>Tel: 0092-91-5265050,</span>
@@ -408,12 +359,10 @@
                   </div>
                 </div>
 
-                <!-- Document Title -->
                 <div class="text-center my-1">
                   <h2 id="prev-doc-title" class="text-base font-bold tracking-wider underline uppercase">PACKING LIST</h2>
                 </div>
 
-                <!-- Top Details Table Grid -->
                 <table class="w-full document-table mb-2">
                   <tbody>
                     <tr>
@@ -486,26 +435,23 @@
                   </tbody>
                 </table>
 
-                <!-- PREVIEW: INVOICE & PACKING LIST TABLE DESIGN -->
                 <div id="prev-packing-view">
                   <table class="w-full document-table mb-1">
                     <thead>
                       <tr class="bg-slate-100 font-bold text-left">
                         <th class="w-1/4">Marks & Nos.</th>
-                        <th class="w-5/12">Deion</th>
+                        <th class="w-5/12">Description</th>
                         <th class="w-1/12 text-center">Quantity</th>
                         <th class="w-1/12 text-right">U/Price</th>
                         <th class="w-1/6 text-right">Amount</th>
                       </tr>
                     </thead>
                     <tbody id="prev-packing-rows">
-                      <!-- Dynamic rows rendered matching structure -->
                     </tbody>
                     <tfoot>
                       <tr class="font-bold">
                         <td colspan="2" class="text-left uppercase text-[9px]">Total: <span id="prev-amount-words" class="font-bold text-[9px]">THIRTY SEVEN THOUSAND & THREE HUNDRED ONLY.</span></td>
-                        <td></td>
-                        <td></td>
+                        <td></td><td></td>
                         <td class="text-right font-bold text-[10px]" id="prev-inv-total-amount">37,300 US$</td>
                       </tr>
                     </tfoot>
@@ -513,16 +459,13 @@
                 </div>
               </div>
 
-              <!-- Bottom Footer Block Aligned to Right directly below the table -->
               <div class="text-right pb-1">
                 <p class="font-bold text-[10px] uppercase">For AZAD WATTAN GENERAL TRDG. CO.</p>
               </div>
             </div>
-
           </div>
         </div>
       </div>
-
     </div>
 
     <!-- TAB 2: SAVED INVOICES VIEW -->
@@ -532,7 +475,7 @@
           <i class="fa-solid fa-folder-open text-amber-500"></i> Saved Invoices Archive
         </h2>
         <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-          <input type="text" id="searchInvoices" oninput="renderInvoicesList()" placeholder="Search invoice #, customer, consignee..." class="text-xs p-2 border border-slate-300 rounded-lg w-full sm:w-64 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          <input type="text" id="searchInvoices" oninput="renderInvoicesList()" placeholder="Search invoice #, customer, consignee..." class="text-xs p-2 border border-slate-300 rounded-lg w-full sm:w-64">
           <select id="sortInvoices" onchange="renderInvoicesList()" class="text-xs p-2 border border-slate-300 rounded-lg bg-white">
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
@@ -556,7 +499,6 @@
               </tr>
             </thead>
             <tbody id="invoices-table-body" class="divide-y divide-slate-200">
-              <!-- Invoices injected here -->
             </tbody>
           </table>
         </div>
@@ -571,63 +513,11 @@
         </h2>
         <p class="text-xs text-slate-500">Click any customer to view their complete transaction history and invoices.</p>
       </div>
-
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="customers-grid">
-        <!-- Customer cards injected here -->
       </div>
     </div>
 
   </main>
-
-  <!-- MODAL: FIREBASE CONFIGURATION SETUP -->
-  <div id="modal-firebase" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-slate-200">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
-          <i class="fa-solid fa-fire text-amber-500"></i> Firebase Config Setup
-        </h3>
-        <button onclick="closeFirebaseModal()" class="text-slate-400 hover:text-slate-600">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
-      </div>
-
-      <p class="text-xs text-slate-500">Paste your Firebase web application configuration JSON or individual credentials below to enable Firestore sync.</p>
-
-      <form id="form-firebase-config" onsubmit="handleSaveFirebaseConfig(event)" class="space-y-3 text-xs">
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">API Key</label>
-          <input type="text" id="fb-apiKey" class="w-full p-2 border rounded focus:ring-2 focus:ring-amber-500" placeholder="AIzaSy...">
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Auth Domain</label>
-          <input type="text" id="fb-authDomain" class="w-full p-2 border rounded focus:ring-2 focus:ring-amber-500" placeholder="your-project.firebaseapp.com">
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Project ID</label>
-          <input type="text" id="fb-projectId" class="w-full p-2 border rounded focus:ring-2 focus:ring-amber-500" placeholder="your-project-id">
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Storage Bucket</label>
-          <input type="text" id="fb-storageBucket" class="w-full p-2 border rounded focus:ring-2 focus:ring-amber-500" placeholder="your-project.appspot.com">
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">Messaging Sender ID</label>
-            <input type="text" id="fb-messagingSenderId" class="w-full p-2 border rounded focus:ring-2 focus:ring-amber-500" placeholder="123456789">
-          </div>
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">App ID</label>
-            <input type="text" id="fb-appId" class="w-full p-2 border rounded focus:ring-2 focus:ring-amber-500" placeholder="1:123456789:web:abcdef">
-          </div>
-        </div>
-
-        <div class="pt-3 flex gap-2 justify-end">
-          <button type="button" onclick="closeFirebaseModal()" class="px-4 py-2 border rounded text-slate-600 hover:bg-slate-100 font-semibold">Cancel</button>
-          <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold">Connect Firebase</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   <!-- MODAL: ADD NEW CONTAINER TYPE -->
   <div id="modal-container-type" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
@@ -636,19 +526,15 @@
         <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
           <i class="fa-solid fa-box text-amber-500"></i> Add Container Type
         </h3>
-        <button onclick="closeContainerTypeModal()" class="text-slate-400 hover:text-slate-600">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
+        <button onclick="closeContainerTypeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-
       <form id="form-new-container-type" onsubmit="handleSaveContainerType(event)" class="space-y-3 text-xs">
         <div>
           <label class="block font-semibold text-slate-700 mb-1">Container Type Name *</label>
-          <input type="text" id="new-container-type-input" required class="w-full p-2 border rounded focus:ring-2 focus:ring-amber-500 uppercase" placeholder="e.g. 20FT REEFER CONTAINER">
+          <input type="text" id="new-container-type-input" required class="w-full p-2 border rounded uppercase" placeholder="e.g. 20FT REEFER CONTAINER">
         </div>
-
         <div class="pt-3 flex gap-2 justify-end">
-          <button type="button" onclick="closeContainerTypeModal()" class="px-4 py-2 border rounded text-slate-600 hover:bg-slate-100 font-semibold">Cancel</button>
+          <button type="button" onclick="closeContainerTypeModal()" class="px-4 py-2 border rounded text-slate-600 font-semibold">Cancel</button>
           <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold">Add Type</button>
         </div>
       </form>
@@ -662,15 +548,12 @@
         <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
           <i class="fa-solid fa-building-user text-amber-500"></i> Add New Consignee
         </h3>
-        <button onclick="closeConsigneeModal()" class="text-slate-400 hover:text-slate-600">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
+        <button onclick="closeConsigneeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-
       <form id="form-new-consignee" onsubmit="handleSaveConsignee(event)" class="space-y-3 text-xs">
         <div>
           <label class="block font-semibold text-slate-700 mb-1">Consignee Name *</label>
-          <input type="text" id="new-c-name" required class="w-full p-2 border rounded focus:ring-2 focus:ring-amber-500 uppercase" placeholder="e.g. SAMI LOGISTICS LLC">
+          <input type="text" id="new-c-name" required class="w-full p-2 border rounded uppercase" placeholder="e.g. SAMI LOGISTICS LLC">
         </div>
         <div>
           <label class="block font-semibold text-slate-700 mb-1">Address *</label>
@@ -686,19 +569,8 @@
             <input type="text" id="new-c-fax" class="w-full p-2 border rounded uppercase" placeholder="FAX: 0098...">
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">National ID</label>
-            <input type="text" id="new-c-nationalid" class="w-full p-2 border rounded uppercase" placeholder="National ID #">
-          </div>
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">Email Address</label>
-            <input type="email" id="new-c-email" class="w-full p-2 border rounded" placeholder="consignee@domain.com">
-          </div>
-        </div>
-
         <div class="pt-3 flex gap-2 justify-end">
-          <button type="button" onclick="closeConsigneeModal()" class="px-4 py-2 border rounded text-slate-600 hover:bg-slate-100 font-semibold">Cancel</button>
+          <button type="button" onclick="closeConsigneeModal()" class="px-4 py-2 border rounded text-slate-600 font-semibold">Cancel</button>
           <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold">Save Consignee</button>
         </div>
       </form>
@@ -713,21 +585,28 @@
           <h3 id="cust-modal-title" class="font-bold text-slate-800 text-lg uppercase">Customer Details</h3>
           <p class="text-xs text-slate-500">Invoice History & Summary</p>
         </div>
-        <button onclick="closeCustomerModal()" class="text-slate-400 hover:text-slate-600">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
+        <button onclick="closeCustomerModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-
       <div id="cust-modal-body" class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
-        <!-- Injected dynamically -->
       </div>
-
       <div class="pt-2 text-right">
         <button onclick="closeCustomerModal()" class="px-4 py-2 bg-slate-800 text-white text-xs font-semibold rounded">Close</button>
       </div>
     </div>
   </div>
-<script>
+
+  <script>
+    // BUILT-IN FIREBASE CONFIGURATION
+    const firebaseConfig = {
+      apiKey: "AIzaSyCzROGVjNgPSmzkS8iba72ljnDtd6ANWKI",
+      authDomain: "iraninvoicepackinglist.firebaseapp.com",
+      projectId: "iraninvoicepackinglist",
+      storageBucket: "iraninvoicepackinglist.firebasestorage.app",
+      messagingSenderId: "714780474596",
+      appId: "1:714780474596:web:8c46dcb0c68b5e516d40f1",
+      measurementId: "G-S8T10ZKTMG"
+    };
+
     // PRESET CONSIGNEES
     const PRESET_CONSIGNEES = [
       {
@@ -750,7 +629,6 @@
       }
     ];
 
-    // DEFAULT CONTAINER TYPES
     const DEFAULT_CONTAINER_TYPES = [
       "40' HC (SOC)",
       "20ft Standard Container",
@@ -761,39 +639,16 @@
       "Open Top Container"
     ];
 
-    // INITIAL DEFAULT AUTO-SUGGESTIONS
     let autoSuggestionsList = [
-      "USED BREAK DOWN CARS",
-      "USED ENGINE",
-      "USED HYBRID BATTERY",
-      "USED EYE MOTION MACHINE",
-      "USED MUFFLAR",
-      "USED RADIATOR ONLY",
-      "USED BREAK BOOSTER",
-      "USED DRIVE SHAFT",
-      "USED ENGINE MOUNT",
-      "USED FLOOR MAT SET",
-      "USED AIR CLEANER",
-      "USED COIL SPRING",
-      "USED PROFELLAR SHAFT",
-      "USED SHOCK ABSORBER",
-      "USED STRUT WITH DISK ASSY",
-      "USED STEERING WHEEL SET",
-      "USED STEERING RACK",
-      "USED BONNET",
-      "USED BUMPER",
-      "USED HORN",
-      "USED JACK",
-      "USED LIGHTS",
-      "USED DOOR MIRROR",
-      "USED WIPER MOTOR",
-      "USED TIRE WITH WHEEL ALUMI",
-      "USED TIRE WITH WHEEL STEEL",
-      "USED SPEED METER",
-      "USED MIX PARTS"
+      "USED BREAK DOWN CARS", "USED ENGINE", "USED HYBRID BATTERY", "USED EYE MOTION MACHINE", 
+      "USED MUFFLAR", "USED RADIATOR ONLY", "USED BREAK BOOSTER", "USED DRIVE SHAFT", 
+      "USED ENGINE MOUNT", "USED FLOOR MAT SET", "USED AIR CLEANER", "USED COIL SPRING", 
+      "USED PROFELLAR SHAFT", "USED SHOCK ABSORBER", "USED STRUT WITH DISK ASSY", 
+      "USED STEERING WHEEL SET", "USED STEERING RACK", "USED BONNET", "USED BUMPER", 
+      "USED HORN", "USED JACK", "USED LIGHTS", "USED DOOR MIRROR", "USED WIPER MOTOR", 
+      "USED TIRE WITH WHEEL ALUMI", "USED TIRE WITH WHEEL STEEL", "USED SPEED METER", "USED MIX PARTS"
     ];
 
-    // INITIAL SAMPLE INVOICE
     const SAMPLE_INVOICE_24621 = {
       invoiceNo: "24621",
       date: "2026-01-28",
@@ -853,7 +708,6 @@
       ]
     };
 
-    // Application State
     let customConsignees = [];
     let customContainerTypes = [];
     let savedInvoices = [];
@@ -861,146 +715,75 @@
     let db = null;
 
     window.onload = function() {
-      // Set today's date default
       document.getElementById('docDate').value = new Date().toISOString().split('T')[0];
 
-      // Load custom consignees from local storage
       const storedCons = localStorage.getItem('azad_custom_consignees');
-      if (storedCons) {
-        try { customConsignees = JSON.parse(storedCons); } catch(e){}
-      }
+      if (storedCons) { try { customConsignees = JSON.parse(storedCons); } catch(e){} }
 
-      // Load custom container types from local storage
       const storedContainerTypes = localStorage.getItem('azad_custom_container_types');
-      if (storedContainerTypes) {
-        try { customContainerTypes = JSON.parse(storedContainerTypes); } catch(e){}
-      }
+      if (storedContainerTypes) { try { customContainerTypes = JSON.parse(storedContainerTypes); } catch(e){} }
 
-      // Load custom suggestions list from local storage
       const storedSuggestions = localStorage.getItem('azad_custom_suggestions');
-      if (storedSuggestions) {
-        try { autoSuggestionsList = JSON.parse(storedSuggestions); } catch(e){}
-      }
+      if (storedSuggestions) { try { autoSuggestionsList = JSON.parse(storedSuggestions); } catch(e){} }
 
-      // Load invoices from local storage or pre-seed
       const storedInvoices = localStorage.getItem('azad_saved_invoices');
-      if (storedInvoices) {
-        try { savedInvoices = JSON.parse(storedInvoices); } catch(e){}
-      }
+      if (storedInvoices) { try { savedInvoices = JSON.parse(storedInvoices); } catch(e){} }
       
       if (savedInvoices.length === 0) {
         savedInvoices.push(SAMPLE_INVOICE_24621);
         saveInvoicesToStorage();
       }
 
-      // Load Firebase configuration if stored & auto-connect cloud
-      loadFirebaseApp();
+      // Initialize Built-in Firebase Cloud Connection Automatically
+      initFirebaseCloud();
 
-      // Render Container Types Options
       renderContainerTypeOptions();
-
-      // Render Consignee Selector Options
       renderConsigneeOptions();
-
-      // Load Sample Invoice Into Form
       loadInvoiceIntoForm(SAMPLE_INVOICE_24621);
-
-      // Render Suggestion Chips
       renderSuggestionChips();
-
-      // Render Invoices Table
       renderInvoicesList();
-
-      // Render Customers Grid
       renderCustomersList();
     };
 
-    // FIREBASE INITIALIZATION LOGIC
-    function openFirebaseModal() {
-      const storedConfig = localStorage.getItem('azad_firebase_config');
-      if (storedConfig) {
-        try {
-          const cfg = JSON.parse(storedConfig);
-          document.getElementById('fb-apiKey').value = cfg.apiKey || '';
-          document.getElementById('fb-authDomain').value = cfg.authDomain || '';
-          document.getElementById('fb-projectId').value = cfg.projectId || '';
-          document.getElementById('fb-storageBucket').value = cfg.storageBucket || '';
-          document.getElementById('fb-messagingSenderId').value = cfg.messagingSenderId || '';
-          document.getElementById('fb-appId').value = cfg.appId || '';
-        } catch(e){}
-      }
-      document.getElementById('modal-firebase').classList.remove('hidden');
-    }
-
-    function closeFirebaseModal() {
-      document.getElementById('modal-firebase').classList.add('hidden');
-    }
-
-    function handleSaveFirebaseConfig(e) {
-      e.preventDefault();
-      const cfg = {
-        apiKey: document.getElementById('fb-apiKey').value.trim(),
-        authDomain: document.getElementById('fb-authDomain').value.trim(),
-        projectId: document.getElementById('fb-projectId').value.trim(),
-        storageBucket: document.getElementById('fb-storageBucket').value.trim(),
-        messagingSenderId: document.getElementById('fb-messagingSenderId').value.trim(),
-        appId: document.getElementById('fb-appId').value.trim()
-      };
-
-      localStorage.setItem('azad_firebase_config', JSON.stringify(cfg));
-      loadFirebaseApp();
-      closeFirebaseModal();
-    }
-
-    function loadFirebaseApp() {
-      const storedConfig = localStorage.getItem('azad_firebase_config');
+    function initFirebaseCloud() {
       const btn = document.getElementById('btn-firebase-status');
-      if (storedConfig) {
-        try {
-          const cfg = JSON.parse(storedConfig);
-          if (cfg.apiKey && cfg.projectId) {
-            if (!firebase.apps.length) {
-              firebase.initializeApp(cfg);
-            }
-            db = firebase.firestore();
-            btn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> Firebase Connected`;
-            btn.className = "bg-emerald-950 text-emerald-400 text-xs font-semibold px-3 py-2 rounded-md transition flex items-center gap-1.5 border border-emerald-800 shadow";
-            
-            // Listen to real-time updates from Cloud Firestore
-            listenToCloudInvoices();
-            return;
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.firestore();
+        
+        // Success Indicator
+        btn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> Cloud Connected`;
+        btn.className = "bg-emerald-950 text-emerald-400 text-xs font-semibold px-3 py-2 rounded-md flex items-center gap-1.5 border border-emerald-800 shadow";
+        
+        // Real-Time Listener across multi-devices
+        db.collection('invoices').onSnapshot((snapshot) => {
+          const cloudInvoices = [];
+          snapshot.forEach((doc) => {
+            cloudInvoices.push(doc.data());
+          });
+          if (cloudInvoices.length > 0) {
+            savedInvoices = cloudInvoices;
+            saveInvoicesToStorage();
+            renderInvoicesList();
+            renderCustomersList();
+            console.log("Real-time sync successful from Cloud Firestore.");
           }
-        } catch(e) {
-          console.error("Firebase init error:", e);
-        }
-      }
-      btn.innerHTML = `<i class="fa-solid fa-fire text-amber-500"></i> Firebase Setup`;
-      btn.className = "bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-semibold px-3 py-2 rounded-md transition flex items-center gap-1.5 border border-slate-700 shadow";
-    }
-
-    function listenToCloudInvoices() {
-      if (!db) return;
-      db.collection('invoices').onSnapshot((snapshot) => {
-        const cloudInvoices = [];
-        snapshot.forEach((doc) => {
-          cloudInvoices.push(doc.data());
+        }, (error) => {
+          console.error("Cloud listener error: ", error);
         });
-        if (cloudInvoices.length > 0) {
-          savedInvoices = cloudInvoices;
-          saveInvoicesToStorage();
-          renderInvoicesList();
-          renderCustomersList();
-          console.log("Synced invoices from cloud Firebase in real-time.");
-        }
-      }, (error) => {
-        console.error("Cloud sync error: ", error);
-      });
+
+      } catch(e) {
+        console.error("Firebase initialization failed:", e);
+        btn.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-400"></i> Cloud Error`;
+        btn.className = "bg-red-950 text-red-400 text-xs font-semibold px-3 py-2 rounded-md flex items-center gap-1.5 border border-red-800 shadow";
+      }
     }
 
     function changeTemplateStyle() {
       const preview = document.getElementById('document-preview');
       const selectedStyle = document.getElementById('templateSelect').value;
-      
       preview.classList.remove('template-classic', 'template-modern', 'template-corporate', 'template-minimalist');
       preview.classList.add(selectedStyle);
     }
@@ -1009,7 +792,6 @@
       const select = document.getElementById('containerType');
       const currentVal = select.value;
       select.innerHTML = '';
-
       const allTypes = [...DEFAULT_CONTAINER_TYPES, ...customContainerTypes];
       allTypes.forEach(type => {
         const opt = document.createElement('option');
@@ -1017,20 +799,11 @@
         opt.textContent = type;
         select.appendChild(opt);
       });
-
-      if (currentVal && allTypes.includes(currentVal)) {
-        select.value = currentVal;
-      }
+      if (currentVal && allTypes.includes(currentVal)) select.value = currentVal;
     }
 
-    function openContainerTypeModal() {
-      document.getElementById('modal-container-type').classList.remove('hidden');
-    }
-
-    function closeContainerTypeModal() {
-      document.getElementById('modal-container-type').classList.add('hidden');
-      document.getElementById('form-new-container-type').reset();
-    }
+    function openContainerTypeModal() { document.getElementById('modal-container-type').classList.remove('hidden'); }
+    function closeContainerTypeModal() { document.getElementById('modal-container-type').classList.add('hidden'); document.getElementById('form-new-container-type').reset(); }
 
     function handleSaveContainerType(e) {
       e.preventDefault();
@@ -1051,9 +824,7 @@
       div.className = 'flex items-center gap-1 container-num-row';
       div.innerHTML = `
         <input type="text" class="container-num-input w-full text-xs p-1.5 border border-slate-300 rounded uppercase font-medium" value="${val}" placeholder="Container No." oninput="updatePreview()">
-        <button type="button" onclick="removeContainerNumberRow(this)" class="text-slate-400 hover:text-red-500 p-1">
-          <i class="fa-solid fa-xmark text-xs"></i>
-        </button>
+        <button type="button" onclick="removeContainerNumberRow(this)" class="text-slate-400 hover:text-red-500 p-1"><i class="fa-solid fa-xmark text-xs"></i></button>
       `;
       container.appendChild(div);
       updatePreview();
@@ -1061,35 +832,26 @@
 
     function removeContainerNumberRow(btn) {
       const rows = document.querySelectorAll('.container-num-row');
-      if (rows.length > 1) {
-        btn.closest('.container-num-row').remove();
-      } else {
-        btn.closest('.container-num-row').querySelector('input').value = '';
-      }
+      if (rows.length > 1) { btn.closest('.container-num-row').remove(); }
+      else { btn.closest('.container-num-row').querySelector('input').value = ''; }
       updatePreview();
     }
 
     function getContainerNumbersList() {
       const inputs = document.querySelectorAll('.container-num-input');
       const list = [];
-      inputs.forEach(input => {
-        if (input.value.trim()) {
-          list.push(input.value.trim().toUpperCase());
-        }
-      });
+      inputs.forEach(input => { if (input.value.trim()) list.push(input.value.trim().toUpperCase()); });
       return list;
     }
 
     function renderConsigneeOptions() {
       const select = document.getElementById('consigneeSelect');
       select.innerHTML = '';
-
       const presetGroup = document.createElement('optgroup');
       presetGroup.label = "Built-in Presets";
       PRESET_CONSIGNEES.forEach(c => {
         const opt = document.createElement('option');
-        opt.value = c.name;
-        opt.textContent = c.name;
+        opt.value = c.name; opt.textContent = c.name;
         presetGroup.appendChild(opt);
       });
       select.appendChild(presetGroup);
@@ -1099,8 +861,7 @@
         customGroup.label = "Custom Saved Consignees";
         customConsignees.forEach(c => {
           const opt = document.createElement('option');
-          opt.value = c.name;
-          opt.textContent = c.name;
+          opt.value = c.name; opt.textContent = c.name;
           customGroup.appendChild(opt);
         });
         select.appendChild(customGroup);
@@ -1111,12 +872,10 @@
       const selectedName = document.getElementById('consigneeSelect').value;
       let allCons = [...PRESET_CONSIGNEES, ...customConsignees];
       let found = allCons.find(c => c.name === selectedName);
-
       if (found) {
         document.getElementById('consigneeAddress').value = found.address || '';
         document.getElementById('consigneeMobile').value = found.mobile || '';
         document.getElementById('consigneeFax').value = found.fax || '';
-        
         let extraText = '';
         if (found.nationalId) extraText += `NAT ID: ${found.nationalId} `;
         if (found.email) extraText += `EMAIL: ${found.email}`;
@@ -1125,14 +884,8 @@
       updatePreview();
     }
 
-    function openConsigneeModal() {
-      document.getElementById('modal-consignee').classList.remove('hidden');
-    }
-
-    function closeConsigneeModal() {
-      document.getElementById('modal-consignee').classList.add('hidden');
-      document.getElementById('form-new-consignee').reset();
-    }
+    function openConsigneeModal() { document.getElementById('modal-consignee').classList.remove('hidden'); }
+    function closeConsigneeModal() { document.getElementById('modal-consignee').classList.add('hidden'); document.getElementById('form-new-consignee').reset(); }
 
     function handleSaveConsignee(e) {
       e.preventDefault();
@@ -1142,13 +895,10 @@
         address: document.getElementById('new-c-address').value.toUpperCase().trim(),
         mobile: document.getElementById('new-c-mobile').value.toUpperCase().trim(),
         fax: document.getElementById('new-c-fax').value.toUpperCase().trim(),
-        nationalId: document.getElementById('new-c-nationalid').value.toUpperCase().trim(),
-        email: document.getElementById('new-c-email').value.trim()
+        nationalId: "", email: ""
       };
-
       customConsignees.push(newCons);
       localStorage.setItem('azad_custom_consignees', JSON.stringify(customConsignees));
-
       renderConsigneeOptions();
       document.getElementById('consigneeSelect').value = newCons.name;
       onConsigneeChange();
@@ -1157,52 +907,26 @@
 
     function numberToWords(num) {
       if (isNaN(num) || num === 0 || num === null) return "ZERO US DOLLARS ONLY";
-
-      const ones = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'TEN',
-                    'ELEVEN', 'TWELVE', 'THIRTEEN', 'FOURTEEN', 'FIFTEEN', 'SIXTEEN', 'SEVENTEEN', 'EIGHTEEN', 'NINETEEN'];
+      const ones = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'TEN', 'ELEVEN', 'TWELVE', 'THIRTEEN', 'FOURTEEN', 'FIFTEEN', 'SIXTEEN', 'SEVENTEEN', 'EIGHTEEN', 'NINETEEN'];
       const tens = ['', '', 'TWENTY', 'THIRTY', 'FORTY', 'FIFTY', 'SIXTY', 'SEVENTY', 'EIGHTY', 'NINETY'];
-
       function convertGroup(n) {
         let str = '';
-        if (n >= 100) {
-          str += ones[Math.floor(n / 100)] + ' HUNDRED ';
-          n %= 100;
-        }
-        if (n >= 20) {
-          str += tens[Math.floor(n / 10)] + ' ';
-          n %= 10;
-        }
-        if (n > 0) {
-          str += ones[n] + ' ';
-        }
+        if (n >= 100) { str += ones[Math.floor(n / 100)] + ' HUNDRED '; n %= 100; }
+        if (n >= 20) { str += tens[Math.floor(n / 10)] + ' '; n %= 10; }
+        if (n > 0) { str += ones[n] + ' '; }
         return str;
       }
-
       let integerPart = Math.floor(Math.abs(num));
       let wordResult = '';
-
-      if (integerPart >= 1000000) {
-        wordResult += convertGroup(Math.floor(integerPart / 1000000)) + 'MILLION ';
-        integerPart %= 1000000;
-      }
-      if (integerPart >= 1000) {
-        wordResult += convertGroup(Math.floor(integerPart / 1000)) + 'THOUSAND ';
-        integerPart %= 1000;
-      }
-      if (integerPart > 0) {
-        wordResult += convertGroup(integerPart);
-      }
-
+      if (integerPart >= 1000000) { wordResult += convertGroup(Math.floor(integerPart / 1000000)) + 'MILLION '; integerPart %= 1000000; }
+      if (integerPart >= 1000) { wordResult += convertGroup(Math.floor(integerPart / 1000)) + 'THOUSAND '; integerPart %= 1000; }
+      if (integerPart > 0) { wordResult += convertGroup(integerPart); }
       return wordResult.trim() + " US DOLLARS ONLY";
     }
 
     function handleAmountInput() {
       const val = parseFloat(document.getElementById('totalAmount').value) || 0;
-      if (val > 0) {
-        document.getElementById('amountWords').value = numberToWords(val);
-      } else {
-        document.getElementById('amountWords').value = '';
-      }
+      document.getElementById('amountWords').value = val > 0 ? numberToWords(val) : '';
       updatePreview();
     }
 
@@ -1214,9 +938,7 @@
         chip.className = 'inline-flex items-center text-[10px] bg-slate-100 hover:bg-amber-100 border border-slate-300 text-slate-800 rounded px-1.5 py-0.5 gap-1 transition';
         chip.innerHTML = `
           <button type="button" class="font-medium uppercase" onclick="addPackingItem('${desc.replace(/'/g, "\\'")}', 1)">${desc}</button>
-          <button type="button" onclick="removeSuggestionKeyword(${idx})" class="text-slate-400 hover:text-red-500 ml-0.5">
-            <i class="fa-solid fa-xmark text-[9px]"></i>
-          </button>
+          <button type="button" onclick="removeSuggestionKeyword(${idx})" class="text-slate-400 hover:text-red-500 ml-0.5"><i class="fa-solid fa-xmark text-[9px]"></i></button>
         `;
         container.appendChild(chip);
       });
@@ -1242,7 +964,6 @@
     function addPackingItem(desc = '', qty = 1, unit = 'PCS') {
       const container = document.getElementById('items-container');
       const itemIndex = container.children.length + 1;
-
       const itemRow = document.createElement('div');
       itemRow.className = 'item-row flex items-center gap-2 bg-white p-2 rounded border border-slate-200 shadow-sm';
       itemRow.innerHTML = `
@@ -1250,28 +971,22 @@
         <input type="text" value="${desc}" placeholder="Item Description" class="item-desc flex-1 text-xs p-1.5 border border-slate-300 rounded uppercase" oninput="updatePreview()">
         <input type="number" value="${qty}" min="1" placeholder="Qty" class="item-qty w-16 text-xs p-1.5 border border-slate-300 rounded font-semibold text-center" oninput="updatePreview()">
         <input type="text" value="${unit}" placeholder="Unit" class="item-unit w-14 text-xs p-1.5 border border-slate-300 rounded font-semibold text-center uppercase" oninput="updatePreview()">
-        <button type="button" onclick="removePackingItem(this)" class="text-slate-400 hover:text-red-500 p-1">
-          <i class="fa-solid fa-trash-can text-xs"></i>
-        </button>
+        <button type="button" onclick="removePackingItem(this)" class="text-slate-400 hover:text-red-500 p-1"><i class="fa-solid fa-trash-can text-xs"></i></button>
       `;
-
       container.appendChild(itemRow);
       renumberItemRows();
       updatePreview();
     }
 
     function removePackingItem(btn) {
-      const row = btn.closest('.item-row');
-      row.remove();
+      btn.closest('.item-row').remove();
       renumberItemRows();
       updatePreview();
     }
 
     function renumberItemRows() {
       const rows = document.querySelectorAll('#items-container .item-row');
-      rows.forEach((row, idx) => {
-        row.querySelector('.row-num').textContent = idx + 1;
-      });
+      rows.forEach((row, idx) => { row.querySelector('.row-num').textContent = idx + 1; });
       document.getElementById('items-count-badge').textContent = `${rows.length} Items`;
     }
 
@@ -1282,15 +997,12 @@
         const desc = row.querySelector('.item-desc').value.trim().toUpperCase();
         const qty = parseInt(row.querySelector('.item-qty').value) || 0;
         const unit = row.querySelector('.item-unit')?.value.trim().toUpperCase() || 'PCS';
-        if (desc || qty > 0) {
-          items.push({ no: idx + 1, desc: desc || 'ITEM', qty, unit });
-        }
+        if (desc || qty > 0) items.push({ no: idx + 1, desc: desc || 'ITEM', qty, unit });
       });
       return items;
     }
 
     function updatePreview() {
-      // Basic Fields
       const invNo = document.getElementById('invoiceNo').value || '24621';
       const rawDate = document.getElementById('docDate').value;
       let formattedDate = '28.01.2026';
@@ -1301,12 +1013,10 @@
 
       const blNo = document.getElementById('blNo').value || 'JEABVS16004116';
       const oceanVessel = document.getElementById('oceanVessel').value || 'FARAHI 2';
-
       const consigneeName = document.getElementById('consigneeSelect').value || '';
       const address = document.getElementById('consigneeAddress').value || '';
       const mobile = document.getElementById('consigneeMobile').value || '';
       const fax = document.getElementById('consigneeFax').value || '';
-
       const customerShipper = document.getElementById('customerShipper').value || 'MATIULLAH SAMIULLAH';
       const portLoading = document.getElementById('portLoading').value || 'JEBEL ALI-UAE';
       const portDischarge = document.getElementById('portDischarge').value || 'BANDAR ABBAS, IRAN';
@@ -1314,59 +1024,40 @@
       
       const rawContainerType = document.getElementById('containerType').value || "40' HC (SOC)";
       const containerQty = parseInt(document.getElementById('containerQty').value) || 1;
-      
-      // Dynamic Container Type Display Format (e.g. 1X40' HC (SOC) or 2X40' HC (SOC))
       let formattedContainerType = `${containerQty}X${rawContainerType.replace(/^\d+X/i, '')}`;
 
       const containerNumbers = getContainerNumbersList();
       const sealNo = document.getElementById('sealNo').value || '';
       const originVal = document.getElementById('originVal').value || 'KOBE JAPAN';
-
       const weightVal = document.getElementById('weightVal').value || '';
       const cargoComments = document.getElementById('cargoComments').value.trim().toUpperCase() || '';
       const invoiceGoodsDesc = document.getElementById('invoiceGoodsDesc').value || 'USED AUTO PARTS';
-
       const totalAmt = parseFloat(document.getElementById('totalAmount').value) || 0;
       const amountWords = document.getElementById('amountWords').value || 'THIRTY SEVEN THOUSAND & THREE HUNDRED ONLY.';
 
-      // Title update
-      const title = document.getElementById('prev-doc-title');
-      if (currentDocMode === 'invoice') {
-        title.textContent = 'COMMERCIAL INVOICE';
-      } else {
-        title.textContent = 'PACKING LIST';
-      }
-
-      // Update Top Details Header
+      document.getElementById('prev-doc-title').textContent = currentDocMode === 'invoice' ? 'COMMERCIAL INVOICE' : 'PACKING LIST';
       document.getElementById('prev-invoice-no').textContent = invNo;
       document.getElementById('prev-date').textContent = formattedDate;
       document.getElementById('prev-bl-no').textContent = blNo;
       document.getElementById('prev-ocean-vessel').textContent = oceanVessel;
-
       document.getElementById('prev-consignee-name').textContent = consigneeName;
       document.getElementById('prev-consignee-address').textContent = address;
       document.getElementById('prev-consignee-mobile').textContent = mobile;
       document.getElementById('prev-consignee-fax').textContent = fax;
-
       document.getElementById('prev-customer-shipper').textContent = customerShipper;
       document.getElementById('prev-invoice-of').textContent = invoiceGoodsDesc;
-
       document.getElementById('prev-port-loading').textContent = portLoading;
       document.getElementById('prev-port-discharge').textContent = portDischarge;
       document.getElementById('prev-final-destination').textContent = finalDestination;
 
-      // Calculate Total Packages Quantity from items
       const items = getPackingItemsFromForm();
       const totalQtySum = items.reduce((sum, item) => sum + (item.qty || 0), 0);
-
       const formattedCurrency = `${totalAmt.toLocaleString('en-US')} US$`;
       document.getElementById('prev-inv-total-amount').textContent = formattedCurrency;
       document.getElementById('prev-amount-words').textContent = amountWords;
 
-      // Render Table Rows
       const packTableBody = document.getElementById('prev-packing-rows');
       packTableBody.innerHTML = '';
-
       const containerNosStr = containerNumbers.join(', ');
 
       const leftSideBlockHtml = `
@@ -1392,7 +1083,6 @@
       } else {
         items.forEach((item, index) => {
           const tr = document.createElement('tr');
-          
           if (index === 0) {
             tr.innerHTML = `
               <td rowspan="${items.length}" class="align-top text-left text-[9px] bg-white">${leftSideBlockHtml}</td>
@@ -1413,12 +1103,10 @@
       }
     }
 
-    // Switch Document View Mode (Commercial Invoice vs Packing List)
     function setDocMode(mode) {
       currentDocMode = mode;
       const btnInv = document.getElementById('btn-mode-invoice');
       const btnPack = document.getElementById('btn-mode-packing');
-
       if (mode === 'invoice') {
         btnInv.className = 'px-3 py-1 text-xs font-bold rounded-l-lg bg-amber-500 text-slate-950 border border-amber-600';
         btnPack.className = 'px-3 py-1 text-xs font-bold rounded-r-lg bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200';
@@ -1435,10 +1123,7 @@
 
     function saveCurrentInvoice() {
       const invNo = document.getElementById('invoiceNo').value.trim();
-      if (!invNo) {
-        alert("Please specify an Invoice Number.");
-        return;
-      }
+      if (!invNo) { alert("Please specify an Invoice Number."); return; }
 
       const invoiceData = {
         invoiceNo: invNo,
@@ -1469,29 +1154,22 @@
         packingItems: getPackingItemsFromForm()
       };
 
-      // Save locally as backup
       const existingIndex = savedInvoices.findIndex(i => i.invoiceNo === invNo);
-      if (existingIndex >= 0) {
-        savedInvoices[existingIndex] = invoiceData;
-      } else {
-        savedInvoices.unshift(invoiceData);
-      }
+      if (existingIndex >= 0) { savedInvoices[existingIndex] = invoiceData; }
+      else { savedInvoices.unshift(invoiceData); }
       saveInvoicesToStorage();
 
-      // Push to Firebase Firestore (Shared Cloud Database)
       if (db) {
         db.collection('invoices').doc(invNo).set(invoiceData)
           .then(() => {
-            console.log("Invoice synced to Firebase successfully.");
+            console.log("Synced instantly to Cloud Firestore.");
             document.getElementById('doc-status-badge').textContent = `Saved & Synced (#${invNo})`;
             document.getElementById('doc-status-badge').className = "text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-medium";
           })
           .catch(err => {
             console.error("Firestore sync error:", err);
-            alert("Saved locally, but failed to sync to Firebase.");
+            alert("Saved locally, but cloud sync encountered an error.");
           });
-      } else {
-        alert("Saved locally! Click Firebase Setup to connect cloud sync.");
       }
 
       renderInvoicesList();
@@ -1528,7 +1206,6 @@
       }
       document.getElementById('containerQty').value = data.containerQty || '1';
       
-      // Render container numbers
       const containerList = document.getElementById('container-numbers-list');
       containerList.innerHTML = '';
       if (data.containerNumbers && data.containerNumbers.length > 0) {
@@ -1545,7 +1222,6 @@
       document.getElementById('totalAmount').value = data.totalAmount || 0;
       document.getElementById('amountWords').value = data.amountWords || '';
 
-      // Clear existing packing items container
       document.getElementById('items-container').innerHTML = '';
       if (data.packingItems && data.packingItems.length > 0) {
         data.packingItems.forEach(item => addPackingItem(item.desc, item.qty, item.unit));
@@ -1563,32 +1239,13 @@
       const newDoc = {
         invoiceNo: newNo,
         date: new Date().toISOString().split('T')[0],
-        blNo: "",
-        oceanVessel: "",
-        consignee: {
-          name: PRESET_CONSIGNEES[0].name,
-          address: PRESET_CONSIGNEES[0].address,
-          mobile: PRESET_CONSIGNEES[0].mobile,
-          fax: PRESET_CONSIGNEES[0].fax,
-          extra: ""
-        },
+        blNo: "", oceanVessel: "",
+        consignee: { name: PRESET_CONSIGNEES[0].name, address: PRESET_CONSIGNEES[0].address, mobile: PRESET_CONSIGNEES[0].mobile, fax: PRESET_CONSIGNEES[0].fax, extra: "" },
         customerShipper: "MATIULLAH SAMIULLAH",
-        portLoading: "JEBEL ALI-UAE",
-        portDischarge: "BANDAR ABBAS, IRAN",
-        finalDestination: "AFGHANISTAN",
-        containerType: "40' HC (SOC)",
-        containerQty: "1",
-        containerNumbers: [""],
-        sealNo: "",
-        originVal: "KOBE JAPAN",
-        weight: "20,000 KGS",
-        cargoComments: "",
-        invoiceGoodsDesc: "USED AUTO PARTS",
-        totalAmount: 0,
-        amountWords: "",
-        packingItems: []
+        portLoading: "JEBEL ALI-UAE", portDischarge: "BANDAR ABBAS, IRAN", finalDestination: "AFGHANISTAN",
+        containerType: "40' HC (SOC)", containerQty: "1", containerNumbers: [""], sealNo: "", originVal: "KOBE JAPAN",
+        weight: "20,000 KGS", cargoComments: "", invoiceGoodsDesc: "USED AUTO PARTS", totalAmount: 0, amountWords: "", packingItems: []
       };
-
       switchTab('editor');
       loadInvoiceIntoForm(newDoc);
     }
@@ -1636,23 +1293,18 @@
 
     function editInvoice(invNo) {
       const inv = savedInvoices.find(i => i.invoiceNo === invNo);
-      if (inv) {
-        loadInvoiceIntoForm(inv);
-        switchTab('editor');
-      }
+      if (inv) { loadInvoiceIntoForm(inv); switchTab('editor'); }
     }
 
     function deleteInvoice(invNo) {
       if (confirm(`Are you sure you want to delete Invoice #${invNo}?`)) {
         savedInvoices = savedInvoices.filter(i => i.invoiceNo !== invNo);
         saveInvoicesToStorage();
-
         if (db) {
           db.collection('invoices').doc(invNo).delete()
-            .then(() => console.log("Invoice removed from Firestore."))
-            .catch(err => console.error("Firestore delete error:", err));
+            .then(() => console.log("Deleted from Firestore."))
+            .catch(err => console.error("Delete error:", err));
         }
-
         renderInvoicesList();
         renderCustomersList();
       }
@@ -1661,14 +1313,10 @@
     function renderCustomersList() {
       const grid = document.getElementById('customers-grid');
       grid.innerHTML = '';
-
-      // Group invoices by customer name
       const customerMap = {};
       savedInvoices.forEach(inv => {
         const cName = (inv.customerShipper || 'UNKNOWN').toUpperCase().trim();
-        if (!customerMap[cName]) {
-          customerMap[cName] = { name: cName, invoices: [] };
-        }
+        if (!customerMap[cName]) customerMap[cName] = { name: cName, invoices: [] };
         customerMap[cName].invoices.push(inv);
       });
 
@@ -1681,11 +1329,9 @@
       customerNames.forEach(name => {
         const data = customerMap[name];
         const totalSpent = data.invoices.reduce((sum, i) => sum + (i.totalAmount || 0), 0);
-        
         const card = document.createElement('div');
         card.className = "bg-white p-5 rounded-xl shadow-md border border-slate-200 hover:border-amber-400 cursor-pointer transition flex flex-col justify-between";
         card.onclick = () => showCustomerHistory(name);
-
         card.innerHTML = `
           <div>
             <div class="flex items-center justify-between mb-2">
@@ -1707,43 +1353,28 @@
     function showCustomerHistory(customerName) {
       const custInvoices = savedInvoices.filter(i => (i.customerShipper || '').toUpperCase().trim() === customerName);
       document.getElementById('cust-modal-title').textContent = customerName;
-
       const body = document.getElementById('cust-modal-body');
       body.innerHTML = '';
-
       const totalVal = custInvoices.reduce((s, i) => s + (i.totalAmount || 0), 0);
       
       const stats = document.createElement('div');
       stats.className = "bg-amber-50 p-3 rounded-lg border border-amber-200 flex justify-between items-center text-xs font-bold text-amber-900 mb-3";
-      stats.innerHTML = `
-        <span>Total Invoices: ${custInvoices.length}</span>
-        <span>Total Value: $${totalVal.toLocaleString()}</span>
-      `;
+      stats.innerHTML = `<span>Total Invoices: ${custInvoices.length}</span><span>Total Value: $${totalVal.toLocaleString()}</span>`;
       body.appendChild(stats);
 
       custInvoices.forEach(inv => {
         const div = document.createElement('div');
         div.className = "bg-slate-50 p-3 rounded border border-slate-200 flex justify-between items-center text-xs";
         div.innerHTML = `
-          <div>
-            <span class="font-bold text-amber-700 mr-2">#${inv.invoiceNo}</span>
-            <span class="text-slate-500 mr-2">${inv.date}</span>
-            <span class="font-medium text-slate-700">${inv.consignee?.name || ''}</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="font-bold text-emerald-700">$${(inv.totalAmount || 0).toLocaleString()}</span>
-            <button onclick="closeCustomerModal(); editInvoice('${inv.invoiceNo}');" class="bg-slate-800 text-white px-2 py-1 rounded text-[10px] font-bold">Open</button>
-          </div>
+          <div><span class="font-bold text-amber-700 mr-2">#${inv.invoiceNo}</span><span class="text-slate-500 mr-2">${inv.date}</span><span class="font-medium text-slate-700">${inv.consignee?.name || ''}</span></div>
+          <div class="flex items-center gap-3"><span class="font-bold text-emerald-700">$${(inv.totalAmount || 0).toLocaleString()}</span><button onclick="closeCustomerModal(); editInvoice('${inv.invoiceNo}');" class="bg-slate-800 text-white px-2 py-1 rounded text-[10px] font-bold">Open</button></div>
         `;
         body.appendChild(div);
       });
-
       document.getElementById('modal-customer-history').classList.remove('hidden');
     }
 
-    function closeCustomerModal() {
-      document.getElementById('modal-customer-history').classList.add('hidden');
-    }
+    function closeCustomerModal() { document.getElementById('modal-customer-history').classList.add('hidden'); }
 
     function switchTab(tab) {
       document.getElementById('view-editor').classList.add('hidden');
@@ -1768,26 +1399,21 @@
       }
     }
 
-    function printDocument() {
-      window.print();
-    }
+    function printDocument() { window.print(); }
 
     function exportPDF() {
       const element = document.getElementById('document-preview');
       const invNo = document.getElementById('invoiceNo').value || 'Doc';
       const docType = currentDocMode === 'invoice' ? 'Commercial_Invoice' : 'Packing_List';
-      
       const opt = {
-        margin:       [2, 2, 2, 2],
-        filename:     `AZAD_WATTAN_${docType}_${invNo}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        margin: [2, 2, 2, 2],
+        filename: `AZAD_WATTAN_${docType}_${invNo}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
-
       html2pdf().set(opt).from(element).save();
     }
   </script>
-  
 </body>
 </html>
