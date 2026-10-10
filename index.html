@@ -865,9 +865,6 @@
       // Set today's date default
       document.getElementById('docDate').value = new Date().toISOString().split('T')[0];
 
-      // Load Firebase configuration if stored
-      loadFirebaseApp();
-
       // Load custom consignees from local storage
       const storedCons = localStorage.getItem('azad_custom_consignees');
       if (storedCons) {
@@ -896,6 +893,9 @@
         savedInvoices.push(SAMPLE_INVOICE_24621);
         saveInvoicesToStorage();
       }
+
+      // Load Firebase configuration if stored & auto-connect cloud
+      loadFirebaseApp();
 
       // Render Container Types Options
       renderContainerTypeOptions();
@@ -960,14 +960,14 @@
         try {
           const cfg = JSON.parse(storedConfig);
           if (cfg.apiKey && cfg.projectId) {
-if (!firebase.apps.length) {
+            if (!firebase.apps.length) {
               firebase.initializeApp(cfg);
             }
             db = firebase.firestore();
             btn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> Firebase Connected`;
             btn.className = "bg-emerald-950 text-emerald-400 text-xs font-semibold px-3 py-2 rounded-md transition flex items-center gap-1.5 border border-emerald-800 shadow";
             
-            // Call this here so it pulls all saved cloud invoices immediately upon connection
+            // Automatically pull all cloud invoices on startup
             loadInvoicesFromCloud();
             return;
           }
@@ -978,26 +978,28 @@ if (!firebase.apps.length) {
       btn.innerHTML = `<i class="fa-solid fa-fire text-amber-500"></i> Firebase Setup`;
       btn.className = "bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-semibold px-3 py-2 rounded-md transition flex items-center gap-1.5 border border-slate-700 shadow";
     }
-function loadInvoicesFromCloud() {
-  if (!db) return;
-  db.collection('invoices').get()
-    .then((querySnapshot) => {
-      const cloudInvoices = [];
-      querySnapshot.forEach((doc) => {
-        cloudInvoices.push(doc.data());
-      });
-      if (cloudInvoices.length > 0) {
-        savedInvoices = cloudInvoices;
-        saveInvoicesToStorage();
-        renderInvoicesList();
-        renderCustomersList();
-        console.log("Loaded invoices from cloud Firebase.");
-      }
-    })
-    .catch((error) => {
-      console.error("Error loading cloud invoices: ", error);
-    });
-}
+
+    function loadInvoicesFromCloud() {
+      if (!db) return;
+      db.collection('invoices').get()
+        .then((querySnapshot) => {
+          const cloudInvoices = [];
+          querySnapshot.forEach((doc) => {
+            cloudInvoices.push(doc.data());
+          });
+          if (cloudInvoices.length > 0) {
+            savedInvoices = cloudInvoices;
+            saveInvoicesToStorage();
+            renderInvoicesList();
+            renderCustomersList();
+            console.log("Loaded invoices from cloud Firebase.");
+          }
+        })
+        .catch((error) => {
+          console.error("Error loading cloud invoices: ", error);
+        });
+    }
+
     function changeTemplateStyle() {
       const preview = document.getElementById('document-preview');
       const selectedStyle = document.getElementById('templateSelect').value;
@@ -1434,72 +1436,69 @@ function loadInvoicesFromCloud() {
       localStorage.setItem('azad_saved_invoices', JSON.stringify(savedInvoices));
     }
 
-function saveCurrentInvoice() {
-  const invNo = document.getElementById('invoiceNo').value.trim();
-  if (!invNo) {
-    alert("Please specify an Invoice Number.");
-    return;
-  }
+    function saveCurrentInvoice() {
+      const invNo = document.getElementById('invoiceNo').value.trim();
+      if (!invNo) {
+        alert("Please specify an Invoice Number.");
+        return;
+      }
 
-  const invoiceData = {
-    invoiceNo: invNo,
-    date: document.getElementById('docDate').value,
-    blNo: document.getElementById('blNo').value,
-    oceanVessel: document.getElementById('oceanVessel').value,
-    consignee: {
-      name: document.getElementById('consigneeSelect').value,
-      address: document.getElementById('consigneeAddress').value,
-      mobile: document.getElementById('consigneeMobile').value,
-      fax: document.getElementById('consigneeFax').value,
-      extra: document.getElementById('consigneeExtra').value
-    },
-    customerShipper: document.getElementById('customerShipper').value.toUpperCase().trim(),
-    portLoading: document.getElementById('portLoading').value,
-    portDischarge: document.getElementById('portDischarge').value,
-    finalDestination: document.getElementById('finalDestination').value,
-    containerType: document.getElementById('containerType').value,
-    containerQty: document.getElementById('containerQty').value,
-    containerNumbers: getContainerNumbersList(),
-    sealNo: document.getElementById('sealNo').value,
-    originVal: document.getElementById('originVal').value,
-    weight: document.getElementById('weightVal').value,
-    cargoComments: document.getElementById('cargoComments').value.trim(),
-    invoiceGoodsDesc: document.getElementById('invoiceGoodsDesc').value,
-    totalAmount: parseFloat(document.getElementById('totalAmount').value) || 0,
-    amountWords: document.getElementById('amountWords').value,
-    packingItems: getPackingItemsFromForm()
-  };
+      const invoiceData = {
+        invoiceNo: invNo,
+        date: document.getElementById('docDate').value,
+        blNo: document.getElementById('blNo').value,
+        oceanVessel: document.getElementById('oceanVessel').value,
+        consignee: {
+          name: document.getElementById('consigneeSelect').value,
+          address: document.getElementById('consigneeAddress').value,
+          mobile: document.getElementById('consigneeMobile').value,
+          fax: document.getElementById('consigneeFax').value,
+          extra: document.getElementById('consigneeExtra').value
+        },
+        customerShipper: document.getElementById('customerShipper').value.toUpperCase().trim(),
+        portLoading: document.getElementById('portLoading').value,
+        portDischarge: document.getElementById('portDischarge').value,
+        finalDestination: document.getElementById('finalDestination').value,
+        containerType: document.getElementById('containerType').value,
+        containerQty: document.getElementById('containerQty').value,
+        containerNumbers: getContainerNumbersList(),
+        sealNo: document.getElementById('sealNo').value,
+        originVal: document.getElementById('originVal').value,
+        weight: document.getElementById('weightVal').value,
+        cargoComments: document.getElementById('cargoComments').value.trim(),
+        invoiceGoodsDesc: document.getElementById('invoiceGoodsDesc').value,
+        totalAmount: parseFloat(document.getElementById('totalAmount').value) || 0,
+        amountWords: document.getElementById('amountWords').value,
+        packingItems: getPackingItemsFromForm()
+      };
 
-  // Save locally as backup
-  const existingIndex = savedInvoices.findIndex(i => i.invoiceNo === invNo);
-  if (existingIndex >= 0) {
-    savedInvoices[existingIndex] = invoiceData;
-  } else {
-    savedInvoices.unshift(invoiceData);
-  }
-  saveInvoicesToStorage();
+      // Save locally as backup
+      const existingIndex = savedInvoices.findIndex(i => i.invoiceNo === invNo);
+      if (existingIndex >= 0) {
+        savedInvoices[existingIndex] = invoiceData;
+      } else {
+        savedInvoices.unshift(invoiceData);
+      }
+      saveInvoicesToStorage();
 
-  // Push to Firebase Firestore (Shared Cloud Database)
-  if (db) {
-    db.collection('invoices').doc(invNo).set(invoiceData)
-      .then(() => {
-        console.log("Invoice synced to Firebase successfully.");
-        document.getElementById('doc-status-badge').textContent = `Saved & Synced (#${invNo})`;
-        document.getElementById('doc-status-badge').className = "text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-medium";
-      })
-      .catch(err => {
-        console.error("Firestore sync error:", err);
-        alert("Saved locally, but failed to sync to Firebase. Check your configuration.");
-      });
-  } else {
-    alert("Firebase is not connected. Please setup Firebase to sync across devices/domains.");
-  }
+      // Push to Firebase Firestore (Shared Cloud Database)
+      if (db) {
+        db.collection('invoices').doc(invNo).set(invoiceData)
+          .then(() => {
+            console.log("Invoice synced to Firebase successfully.");
+            document.getElementById('doc-status-badge').textContent = `Saved & Synced (#${invNo})`;
+            document.getElementById('doc-status-badge').className = "text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-medium";
+          })
+          .catch(err => {
+            console.error("Firestore sync error:", err);
+            alert("Saved locally, but failed to sync to Firebase.");
+          });
+      } else {
+        alert("Saved locally! Connect Firebase to sync across devices/domains.");
+      }
 
-  renderInvoicesList();
-  renderCustomersList();
-
-      document.getElementById('doc-status-badge').textContent = `Saved (#${invNo})`;
-      document.getElementById('doc-status-badge').className = "text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-medium";
+      renderInvoicesList();
+      renderCustomersList();
     }
 
     function loadInvoiceIntoForm(data) {
