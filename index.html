@@ -960,12 +960,15 @@
         try {
           const cfg = JSON.parse(storedConfig);
           if (cfg.apiKey && cfg.projectId) {
-            if (!firebase.apps.length) {
+if (!firebase.apps.length) {
               firebase.initializeApp(cfg);
             }
             db = firebase.firestore();
             btn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> Firebase Connected`;
             btn.className = "bg-emerald-950 text-emerald-400 text-xs font-semibold px-3 py-2 rounded-md transition flex items-center gap-1.5 border border-emerald-800 shadow";
+            
+            // Call this here so it pulls all saved cloud invoices immediately upon connection
+            loadInvoicesFromCloud();
             return;
           }
         } catch(e) {
