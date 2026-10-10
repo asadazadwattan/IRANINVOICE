@@ -27,7 +27,11 @@
     @media print {
       .no-print { display: none !important; }
       .print-only { display: block !important; }
-      body { background: white !important; color: black !important; margin: 0 !important; }
+      body { background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; }
+      @page {
+        size: A4 portrait;
+        margin: 0mm;
+      }
       #document-preview {
         width: 210mm !important;
         height: 297mm !important;
@@ -36,6 +40,7 @@
         box-shadow: none !important;
         border: none !important;
         padding: 8mm !important;
+        margin: 0 !important;
         page-break-after: avoid !important;
         page-break-inside: avoid !important;
       }
@@ -596,7 +601,6 @@
   </div>
 
   <script>
-    // BUILT-IN FIREBASE CONFIGURATION
     const firebaseConfig = {
       apiKey: "AIzaSyCzROGVjNgPSmzkS8iba72ljnDtd6ANWKI",
       authDomain: "iraninvoicepackinglist.firebaseapp.com",
@@ -607,7 +611,6 @@
       measurementId: "G-S8T10ZKTMG"
     };
 
-    // PRESET CONSIGNEES
     const PRESET_CONSIGNEES = [
       {
         id: "preset-1",
@@ -734,7 +737,6 @@
         saveInvoicesToStorage();
       }
 
-      // Initialize Built-in Firebase Cloud Connection Automatically
       initFirebaseCloud();
 
       renderContainerTypeOptions();
@@ -753,11 +755,9 @@
         }
         db = firebase.firestore();
         
-        // Success Indicator
         btn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> Cloud Connected`;
         btn.className = "bg-emerald-950 text-emerald-400 text-xs font-semibold px-3 py-2 rounded-md flex items-center gap-1.5 border border-emerald-800 shadow";
         
-        // Real-Time Listener across multi-devices
         db.collection('invoices').onSnapshot((snapshot) => {
           const cloudInvoices = [];
           snapshot.forEach((doc) => {
@@ -1406,11 +1406,11 @@
       const invNo = document.getElementById('invoiceNo').value || 'Doc';
       const docType = currentDocMode === 'invoice' ? 'Commercial_Invoice' : 'Packing_List';
       const opt = {
-        margin: [2, 2, 2, 2],
-        filename: `AZAD_WATTAN_${docType}_${invNo}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        margin:       0,
+        filename:     `AZAD_WATTAN_${docType}_${invNo}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
       html2pdf().set(opt).from(element).save();
     }
