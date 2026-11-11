@@ -31,6 +31,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <!-- QRCode.js for instant verification codes -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- SheetJS for instant XLSX / CSV file parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.mini.min.js"></script>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -120,6 +122,49 @@
     .template-corporate h1 {
       color: #1e3a8a !important;
     }
+
+    /* Compact Spreadsheet View Mode */
+    .compact-sheet-mode #items-container {
+      max-height: 420px !important;
+    }
+    .compact-sheet-mode .item-row {
+      padding: 2px 4px !important;
+      gap: 3px !important;
+      margin-bottom: 2px !important;
+      border-radius: 3px !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: none !important;
+      background-color: #f8fafc !important;
+    }
+    .compact-sheet-mode .item-row:hover {
+      background-color: #f1f5f9 !important;
+      border-color: #94a3b8 !important;
+    }
+    .compact-sheet-mode .item-row input {
+      padding: 2px 4px !important;
+      font-size: 11px !important;
+      height: 24px !important;
+      line-height: 1 !important;
+    }
+    .compact-sheet-mode .row-num {
+      font-size: 10px !important;
+      width: 18px !important;
+    }
+    .compact-sheet-mode .item-line-total {
+      font-size: 9px !important;
+      margin-right: 2px !important;
+    }
+    .compact-sheet-mode .item-row button {
+      padding: 0 1px !important;
+    }
+    .compact-sheet-mode .item-row button i {
+      font-size: 9px !important;
+    }
+    .dropzone-active {
+      border: 2px dashed #d97706 !important;
+      background-color: #fffbeb !important;
+    }
+
     .template-minimalist {
       border: 2px solid #000 !important;
     }
@@ -384,22 +429,74 @@
           </div>
 
           <!-- Packing List Items -->
-          <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-3">
-            <div class="flex justify-between items-center">
+          <div id="packing-section-card" class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2.5 transition relative" ondragover="handlePackingDragOver(event)" ondragleave="handlePackingDragLeave(event)" ondrop="handlePackingDrop(event)">
+            
+            <!-- Drag & Drop Overlay Indicator -->
+            <div id="packing-drop-overlay" class="absolute inset-0 bg-amber-500/10 backdrop-blur-[1px] border-2 border-dashed border-amber-500 rounded-lg hidden flex-col items-center justify-center z-20 pointer-events-none">
+              <i class="fa-solid fa-cloud-arrow-up text-3xl text-amber-600 mb-1 animate-bounce"></i>
+              <span class="text-xs font-bold text-amber-900 uppercase">Drop Excel (.xlsx / .csv) file to import items</span>
+            </div>
+
+            <!-- Header Title & View Mode Switcher -->
+            <div class="flex justify-between items-center pb-1 border-b border-slate-200">
               <div class="flex items-center gap-2">
-                <label class="block text-xs font-bold text-slate-800">Packing List & Items</label>
+                <label class="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <i class="fa-solid fa-boxes-stacked text-amber-600 text-xs"></i> Packing List &amp; Cargo Items
+                </label>
                 <span id="items-count-badge" class="text-[10px] bg-slate-200 px-2 py-0.5 rounded text-slate-700 font-bold">0 Items</span>
               </div>
-              <div class="flex items-center gap-1">
-                <button type="button" onclick="openExcelImportModal()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-1 rounded font-semibold flex items-center gap-1 shadow-sm transition">
-                  <i class="fa-solid fa-file-excel text-emerald-600"></i> Excel Import
+              <!-- View Mode Switch: Compact vs Standard -->
+              <div class="inline-flex rounded border border-slate-300 bg-white p-0.5 shadow-sm text-[10px]">
+                <button type="button" id="btn-view-compact" onclick="setItemsViewMode('compact')" class="px-2 py-0.5 rounded font-bold transition flex items-center gap-1 bg-amber-500 text-slate-950">
+                  <i class="fa-solid fa-table-cells"></i> Compact
                 </button>
-                <button type="button" onclick="exportItemsToCSV()" class="text-xs bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-2 py-1 rounded font-semibold shadow-sm transition" title="Export current items to CSV">
-                  <i class="fa-solid fa-download text-xs"></i> CSV
+                <button type="button" id="btn-view-standard" onclick="setItemsViewMode('standard')" class="px-2 py-0.5 rounded font-bold transition flex items-center gap-1 text-slate-600 hover:text-slate-900">
+                  <i class="fa-solid fa-list"></i> Cards
                 </button>
-                <button type="button" onclick="clearAllPackingItems()" class="text-xs bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2 py-1 rounded font-semibold transition" title="Clear all lines">
-                  <i class="fa-solid fa-trash-can text-xs"></i>
+              </div>
+            </div>
+
+            <!-- Fast-Entry Action Bar (All 7 Options) -->
+            <div class="bg-white p-2 rounded-lg border border-slate-200 shadow-sm space-y-1.5">
+              <div class="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase">
+                <span>Fast Entry Tools:</span>
+                <span class="text-[9px] text-slate-400 font-normal">Press Enter in quantity to auto-add row</span>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
+                <!-- Option 1: Templates / Kits -->
+                <button type="button" onclick="openTemplatesModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 p-1.5 rounded font-bold flex items-center justify-center gap-1.5 shadow-sm transition">
+                  <i class="fa-solid fa-layer-group text-indigo-600 text-[11px]"></i> Cargo Kits
                 </button>
+                <!-- Option 2: WhatsApp / Smart Text Parser -->
+                <button type="button" onclick="openSmartTextModal()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 p-1.5 rounded font-bold flex items-center justify-center gap-1.5 shadow-sm transition">
+                  <i class="fa-brands fa-whatsapp text-emerald-600 text-xs"></i> Smart Text
+                </button>
+                <!-- Option 3: Visual Catalog Checklist -->
+                <button type="button" onclick="openCatalogModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 p-1.5 rounded font-bold flex items-center justify-center gap-1.5 shadow-sm transition">
+                  <i class="fa-solid fa-list-check text-amber-600 text-xs"></i> Quick Catalog
+                </button>
+                <!-- Option 4: Copy from Past Invoice -->
+                <button type="button" onclick="openCopyInvoiceItemsModal()" class="bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-300 p-1.5 rounded font-bold flex items-center justify-center gap-1.5 shadow-sm transition">
+                  <i class="fa-solid fa-copy text-sky-600 text-xs"></i> Copy Invoice
+                </button>
+              </div>
+              <div class="flex justify-between items-center pt-1 border-t border-slate-100 text-xs">
+                <div class="flex items-center gap-1.5">
+                  <button type="button" onclick="openExcelImportModal()" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded font-semibold flex items-center gap-1 border border-slate-300">
+                    <i class="fa-solid fa-file-excel text-emerald-600"></i> Excel / Drop
+                  </button>
+                  <button type="button" onclick="exportItemsToCSV()" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded font-semibold flex items-center gap-1 border border-slate-300" title="Export current items to CSV">
+                    <i class="fa-solid fa-download text-[10px]"></i> CSV
+                  </button>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" onclick="saveCurrentItemsAsTemplatePrompt()" class="text-[11px] text-indigo-700 hover:text-indigo-900 font-semibold px-2 py-1 rounded bg-indigo-50 border border-indigo-200" title="Save current lines as a reusable kit">
+                    <i class="fa-solid fa-floppy-disk text-[10px]"></i> Save as Kit
+                  </button>
+                  <button type="button" onclick="clearAllPackingItems()" class="text-[11px] text-red-600 hover:text-red-800 font-semibold px-2 py-1 rounded bg-red-50 border border-red-200" title="Clear all lines">
+                    <i class="fa-solid fa-trash-can text-[10px]"></i> Clear
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -425,6 +522,7 @@
             </div>
 
             <!-- Items Container -->
+            <datalist id="suggestions-datalist"></datalist>
             <div id="items-container" class="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
             </div>
 
@@ -960,6 +1058,157 @@
     </div>
   </div>
 
+  
+  <!-- MODAL: CARGO KITS & TEMPLATES -->
+  <div id="modal-cargo-templates" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-slate-200">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+          <i class="fa-solid fa-layer-group text-indigo-600"></i> Cargo Manifest Kits &amp; Templates
+        </h3>
+        <button onclick="closeTemplatesModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <p class="text-xs text-slate-500">Select a pre-configured kit to load standard auto parts manifests in 1 click:</p>
+      
+      <div class="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1" id="templates-list-container">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="pt-2 border-t flex justify-between items-center text-xs">
+        <div class="flex items-center gap-2">
+          <label class="flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+            <input type="radio" name="templateLoadMode" value="replace" checked class="accent-amber-600"> Replace
+          </label>
+          <label class="flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+            <input type="radio" name="templateLoadMode" value="append" class="accent-amber-600"> Append
+          </label>
+        </div>
+        <button type="button" onclick="closeTemplatesModal()" class="px-4 py-2 bg-slate-800 text-white rounded font-bold text-xs">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: WHATSAPP & SMART TEXT PARSER -->
+  <div id="modal-smart-text" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-xl w-full p-6 space-y-4 border border-slate-200">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+          <i class="fa-brands fa-whatsapp text-emerald-600 text-lg"></i> Smart Text &amp; WhatsApp Message Parser
+        </h3>
+        <button onclick="closeSmartTextModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed">
+        Paste raw text, WhatsApp cargo messages, bullet lists, or notes below. The system automatically detects <span class="font-bold text-slate-800">Quantity</span>, <span class="font-bold text-slate-800">Description</span>, <span class="font-bold text-slate-800">Unit</span>, and optional <span class="font-bold text-slate-800">Price</span>.
+      </p>
+      <textarea id="smart-text-input" rows="7" class="w-full text-xs p-2.5 border border-slate-300 rounded font-mono uppercase" placeholder="Example formats:&#10;73 USED ENGINE @ 150&#10;30 USED BUMPER&#10;252 USED LIGHTS 15$&#10;5 breakdown cars, 10 mufflers, 1 lot mix parts" oninput="previewSmartText()"></textarea>
+      
+      <!-- Live Parsing Preview -->
+      <div class="border border-slate-200 rounded-lg p-2.5 bg-slate-50 space-y-1.5">
+        <div class="flex justify-between items-center text-xs">
+          <span class="font-bold text-slate-700 flex items-center gap-1.5">
+            <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Parsed Result Preview
+          </span>
+          <span id="smart-text-count" class="font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-[10px]">0 items detected</span>
+        </div>
+        <div id="smart-text-preview-list" class="max-h-36 overflow-y-auto custom-scrollbar text-[11px] space-y-1 pr-1 font-mono">
+          <p class="text-slate-400 italic">Type or paste text above to see live preview...</p>
+        </div>
+      </div>
+
+      <div class="pt-2 flex justify-between items-center text-xs">
+        <div class="flex items-center gap-3">
+          <label class="flex items-center gap-1 cursor-pointer font-semibold text-slate-700">
+            <input type="radio" name="smartTextMode" value="append" checked class="accent-amber-600"> Append
+          </label>
+          <label class="flex items-center gap-1 cursor-pointer font-semibold text-slate-700">
+            <input type="radio" name="smartTextMode" value="replace" class="accent-amber-600"> Replace All
+          </label>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" onclick="closeSmartTextModal()" class="px-4 py-2 border rounded text-slate-600 font-semibold text-xs">Cancel</button>
+          <button type="button" onclick="executeSmartTextImport()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs flex items-center gap-1.5 shadow">
+            <i class="fa-solid fa-check"></i> Insert Parsed Items
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: QUICK CATALOG CHECKLIST -->
+  <div id="modal-catalog-picker" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 space-y-4 border border-slate-200">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-amber-500"></i> Auto Parts Catalog &amp; Multi-Selector
+          </h3>
+          <p class="text-xs text-slate-500">Check desired parts and set quantities. Click insert to add all at once.</p>
+        </div>
+        <button onclick="closeCatalogModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="flex gap-2 items-center">
+        <input type="text" id="catalog-search-input" oninput="filterCatalogItems()" placeholder="Search parts (e.g. engine, bumper, light)..." class="text-xs p-2 border border-slate-300 rounded flex-1 uppercase">
+        <button type="button" onclick="selectAllCatalog(true)" class="text-[11px] bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded font-semibold text-slate-700 border">Select All</button>
+        <button type="button" onclick="selectAllCatalog(false)" class="text-[11px] bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded font-semibold text-slate-700 border">Clear</button>
+      </div>
+
+      <div id="catalog-items-grid" class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-80 overflow-y-auto custom-scrollbar p-1 text-xs">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="pt-2 border-t flex justify-between items-center text-xs">
+        <span id="catalog-selected-badge" class="font-bold text-slate-700">0 items selected</span>
+        <div class="flex gap-2">
+          <button type="button" onclick="closeCatalogModal()" class="px-4 py-2 border rounded text-slate-600 font-semibold text-xs">Cancel</button>
+          <button type="button" onclick="executeCatalogInsert()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-xs flex items-center gap-1.5 shadow">
+            <i class="fa-solid fa-plus"></i> Insert Selected
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: COPY ITEMS FROM PAST INVOICE -->
+  <div id="modal-copy-invoice-items" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-200">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+          <i class="fa-solid fa-copy text-sky-600"></i> Copy Items from Past Invoice
+        </h3>
+        <button onclick="closeCopyInvoiceItemsModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <p class="text-xs text-slate-500">Select an existing saved invoice to copy its entire packing list into your current draft:</p>
+      
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Choose Saved Invoice</label>
+        <select id="copy-invoice-select" onchange="previewInvoiceItemsToCopy()" class="w-full text-xs p-2 border border-slate-300 rounded bg-white font-semibold">
+        </select>
+      </div>
+
+      <div id="copy-invoice-preview-box" class="bg-slate-50 p-2.5 rounded border border-slate-200 max-h-48 overflow-y-auto custom-scrollbar text-xs space-y-1">
+        <p class="text-slate-400 italic">Select an invoice above to preview items...</p>
+      </div>
+
+      <div class="pt-2 border-t flex justify-between items-center text-xs">
+        <div class="flex items-center gap-2">
+          <label class="flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+            <input type="radio" name="copyInvoiceMode" value="replace" checked class="accent-amber-600"> Replace
+          </label>
+          <label class="flex items-center gap-1 font-semibold text-slate-700 cursor-pointer">
+            <input type="radio" name="copyInvoiceMode" value="append" class="accent-amber-600"> Append
+          </label>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" onclick="closeCopyInvoiceItemsModal()" class="px-4 py-2 border rounded text-slate-600 font-semibold text-xs">Cancel</button>
+          <button type="button" onclick="executeCopyInvoiceItems()" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded font-bold text-xs flex items-center gap-1 shadow">
+            <i class="fa-solid fa-copy"></i> Copy Items
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: ADD / EDIT CONTAINER TYPE -->
   <div id="modal-container-type" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-slate-200">
@@ -1374,7 +1623,562 @@
       renderCustomersList();
       applySettings();
       renderSettingsForm();
+      initFastPackingEntry();
     };
+
+    
+    /* ==========================================================================
+       FAST PACKING ENTRY ENHANCEMENT SUITE (ALL 7 OPTIONS)
+       ========================================================================== */
+
+    const PRESET_CARGO_TEMPLATES = [
+      {
+        id: "tpl-standard-40hc",
+        name: "40ft HC Standard Auto Parts Assortment (29 Common Items)",
+        desc: "Complete balanced container manifest of used Japanese auto parts",
+        items: [
+          { desc: "USED BREAK DOWN CARS", qty: 5, unit: "UNIT", price: 0 },
+          { desc: "USED ENGINE", qty: 73, unit: "PCS", price: 0 },
+          { desc: "USED HYBRID BATTERY", qty: 2, unit: "PCS", price: 0 },
+          { desc: "USED EYE MOTION MACHINE", qty: 5, unit: "PCS", price: 0 },
+          { desc: "USED MUFFLAR", qty: 8, unit: "PCS", price: 0 },
+          { desc: "USED RADIATOR ONLY", qty: 33, unit: "PCS", price: 0 },
+          { desc: "USED BREAK BOOSTER", qty: 50, unit: "PCS", price: 0 },
+          { desc: "USED DRIVE SHAFT", qty: 144, unit: "PCS", price: 0 },
+          { desc: "USED ENGINE MOUNT", qty: 202, unit: "PCS", price: 0 },
+          { desc: "USED FLOOR MAT SET", qty: 30, unit: "PCS", price: 0 },
+          { desc: "USED AIR CLEANER", qty: 8, unit: "PCS", price: 0 },
+          { desc: "USED COIL SPRING", qty: 98, unit: "PCS", price: 0 },
+          { desc: "USED PROFELLAR SHAFT", qty: 144, unit: "PCS", price: 0 },
+          { desc: "USED SHOCK ABSORBER", qty: 220, unit: "PCS", price: 0 },
+          { desc: "USED STRUT WITH DISK ASSY", qty: 156, unit: "PCS", price: 0 },
+          { desc: "USED STEERING WHEEL SET", qty: 144, unit: "PCS", price: 0 },
+          { desc: "USED STEERING RACK", qty: 26, unit: "PCS", price: 0 },
+          { desc: "USED BONNET", qty: 80, unit: "PCS", price: 0 },
+          { desc: "USED BUMPER", qty: 30, unit: "PCS", price: 0 },
+          { desc: "USED HORN", qty: 262, unit: "PCS", price: 0 },
+          { desc: "USED JACK", qty: 434, unit: "PCS", price: 0 },
+          { desc: "USED LIGHTS", qty: 252, unit: "PCS", price: 0 },
+          { desc: "USED DOOR MIRROR", qty: 150, unit: "PCS", price: 0 },
+          { desc: "USED WIPER MOTOR", qty: 106, unit: "PCS", price: 0 },
+          { desc: "USED TIRE WITH WHEEL ALUMI", qty: 360, unit: "PCS", price: 0 },
+          { desc: "USED TIRE WITH WHEEL STEEL", qty: 288, unit: "PCS", price: 0 },
+          { desc: "USED RADIATOR ONLY", qty: 300, unit: "PCS", price: 0 },
+          { desc: "USED SPEED METER", qty: 125, unit: "PCS", price: 0 },
+          { desc: "USED MIX PARTS", qty: 1, unit: "LOT", price: 0 }
+        ]
+      },
+      {
+        id: "tpl-mechanical",
+        name: "Mechanical & Powertrain Focus (12 Items)",
+        desc: "Engines, gearboxes, mounts, shafts, radiators & cooling spares",
+        items: [
+          { desc: "USED ENGINE", qty: 80, unit: "PCS", price: 0 },
+          { desc: "USED HYBRID BATTERY", qty: 5, unit: "PCS", price: 0 },
+          { desc: "USED RADIATOR ONLY", qty: 50, unit: "PCS", price: 0 },
+          { desc: "USED BREAK BOOSTER", qty: 60, unit: "PCS", price: 0 },
+          { desc: "USED DRIVE SHAFT", qty: 150, unit: "PCS", price: 0 },
+          { desc: "USED ENGINE MOUNT", qty: 200, unit: "PCS", price: 0 },
+          { desc: "USED PROFELLAR SHAFT", qty: 120, unit: "PCS", price: 0 },
+          { desc: "USED STEERING RACK", qty: 40, unit: "PCS", price: 0 },
+          { desc: "USED MUFFLAR", qty: 20, unit: "PCS", price: 0 },
+          { desc: "USED AIR CLEANER", qty: 15, unit: "PCS", price: 0 },
+          { desc: "USED WIPER MOTOR", qty: 100, unit: "PCS", price: 0 },
+          { desc: "USED MIX PARTS", qty: 1, unit: "LOT", price: 0 }
+        ]
+      },
+      {
+        id: "tpl-body-lighting",
+        name: "Body Panels, Bumpers & Lighting Kit (11 Items)",
+        desc: "Bonnets, bumpers, door mirrors, headlights, taillights & sheet metal",
+        items: [
+          { desc: "USED BONNET", qty: 100, unit: "PCS", price: 0 },
+          { desc: "USED BUMPER", qty: 60, unit: "PCS", price: 0 },
+          { desc: "USED LIGHTS", qty: 300, unit: "PCS", price: 0 },
+          { desc: "USED DOOR MIRROR", qty: 200, unit: "PCS", price: 0 },
+          { desc: "USED HORN", qty: 250, unit: "PCS", price: 0 },
+          { desc: "USED FLOOR MAT SET", qty: 50, unit: "PCS", price: 0 },
+          { desc: "USED WIPER MOTOR", qty: 120, unit: "PCS", price: 0 },
+          { desc: "USED STEERING WHEEL SET", qty: 100, unit: "PCS", price: 0 },
+          { desc: "USED SPEED METER", qty: 100, unit: "PCS", price: 0 },
+          { desc: "USED JACK", qty: 300, unit: "PCS", price: 0 },
+          { desc: "USED MIX PARTS", qty: 1, unit: "LOT", price: 0 }
+        ]
+      },
+      {
+        id: "tpl-suspension",
+        name: "Suspension & Running Gear Kit (10 Items)",
+        desc: "Shocks, struts with disc assy, springs, wheels & steering",
+        items: [
+          { desc: "USED SHOCK ABSORBER", qty: 250, unit: "PCS", price: 0 },
+          { desc: "USED STRUT WITH DISK ASSY", qty: 180, unit: "PCS", price: 0 },
+          { desc: "USED COIL SPRING", qty: 120, unit: "PCS", price: 0 },
+          { desc: "USED DRIVE SHAFT", qty: 150, unit: "PCS", price: 0 },
+          { desc: "USED TIRE WITH WHEEL ALUMI", qty: 300, unit: "PCS", price: 0 },
+          { desc: "USED TIRE WITH WHEEL STEEL", qty: 250, unit: "PCS", price: 0 },
+          { desc: "USED STEERING RACK", qty: 50, unit: "PCS", price: 0 },
+          { desc: "USED STEERING WHEEL SET", qty: 100, unit: "PCS", price: 0 },
+          { desc: "USED JACK", qty: 400, unit: "PCS", price: 0 },
+          { desc: "USED MIX PARTS", qty: 1, unit: "LOT", price: 0 }
+        ]
+      }
+    ];
+
+    let customCargoTemplates = [];
+    let currentItemsViewMode = "compact";
+
+    function initFastPackingEntry() {
+      const storedTpls = localStorage.getItem('azad_custom_templates');
+      if (storedTpls) {
+        try { customCargoTemplates = JSON.parse(storedTpls); } catch(e){}
+      }
+      const storedView = localStorage.getItem('azad_items_view_mode');
+      if (storedView) currentItemsViewMode = storedView;
+      setItemsViewMode(currentItemsViewMode);
+      updateDatalistSuggestions();
+    }
+
+    /* 1. View Mode (Compact vs Standard) */
+    function setItemsViewMode(mode) {
+      currentItemsViewMode = mode;
+      localStorage.setItem('azad_items_view_mode', mode);
+      const card = document.getElementById('packing-section-card');
+      const btnCompact = document.getElementById('btn-view-compact');
+      const btnStandard = document.getElementById('btn-view-standard');
+      if (!card || !btnCompact || !btnStandard) return;
+
+      if (mode === 'compact') {
+        card.classList.add('compact-sheet-mode');
+        btnCompact.className = "px-2 py-0.5 rounded font-bold transition flex items-center gap-1 bg-amber-500 text-slate-950";
+        btnStandard.className = "px-2 py-0.5 rounded font-bold transition flex items-center gap-1 text-slate-600 hover:text-slate-900";
+      } else {
+        card.classList.remove('compact-sheet-mode');
+        btnStandard.className = "px-2 py-0.5 rounded font-bold transition flex items-center gap-1 bg-amber-500 text-slate-950";
+        btnCompact.className = "px-2 py-0.5 rounded font-bold transition flex items-center gap-1 text-slate-600 hover:text-slate-900";
+      }
+    }
+
+    /* 2. Datalist Auto-Complete */
+    function updateDatalistSuggestions() {
+      const dl = document.getElementById('suggestions-datalist');
+      if (!dl) return;
+      dl.innerHTML = '';
+      autoSuggestionsList.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s;
+        dl.appendChild(opt);
+      });
+    }
+
+    /* 3. Drag & Drop File Parser (XLSX, XLS, CSV, TXT) */
+    function handlePackingDragOver(e) {
+      e.preventDefault();
+      const overlay = document.getElementById('packing-drop-overlay');
+      if (overlay) overlay.classList.remove('hidden');
+    }
+    function handlePackingDragLeave(e) {
+      e.preventDefault();
+      const overlay = document.getElementById('packing-drop-overlay');
+      if (overlay) overlay.classList.add('hidden');
+    }
+    function handlePackingDrop(e) {
+      e.preventDefault();
+      const overlay = document.getElementById('packing-drop-overlay');
+      if (overlay) overlay.classList.add('hidden');
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || files.length === 0) return;
+      processUploadedFile(files[0]);
+    }
+
+    function processUploadedFile(file) {
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+            const items = [];
+            json.forEach((row, idx) => {
+              if (idx === 0 && row.some(cell => String(cell).toLowerCase().includes('desc'))) return; // skip header
+              if (!row || row.length === 0) return;
+              const desc = String(row[0] || '').trim().toUpperCase();
+              const qty = parseFloat(String(row[1] || '').replace(/[^0-9.]/g, '')) || 1;
+              const unit = String(row[2] || 'PCS').trim().toUpperCase() || 'PCS';
+              const price = parseFloat(String(row[3] || '0').replace(/[^0-9.]/g, '')) || 0;
+              if (desc) items.push({ desc, qty, unit, price });
+            });
+            if (items.length > 0) {
+              if (confirm(`Detected ${items.length} items in ${file.name}. Replace current items (OK) or Append (Cancel)?`)) {
+                document.getElementById('items-container').innerHTML = '';
+              }
+              items.forEach(i => addPackingItem(i.desc, i.qty, i.unit, i.price));
+              recalculateItemsTotal();
+              updatePreview();
+              alert(`Successfully loaded ${items.length} items from ${file.name}!`);
+            } else {
+              alert("Could not detect items in that Excel spreadsheet.");
+            }
+          } catch(err) {
+            console.error("XLSX parse error: ", err);
+            alert("Error parsing Excel file.");
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const parsed = parseExcelText(e.target.result);
+          if (parsed.length > 0) {
+            if (confirm(`Detected ${parsed.length} items in file. Replace current items (OK) or Append (Cancel)?`)) {
+              document.getElementById('items-container').innerHTML = '';
+            }
+            parsed.forEach(i => addPackingItem(i.desc, i.qty, i.unit, i.price));
+            recalculateItemsTotal();
+            updatePreview();
+            alert(`Loaded ${parsed.length} items!`);
+          } else {
+            alert("Could not detect items in that text/CSV file.");
+          }
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    /* 4. Templates Modal Logic */
+    function openTemplatesModal() {
+      renderTemplatesList();
+      document.getElementById('modal-cargo-templates').classList.remove('hidden');
+    }
+    function closeTemplatesModal() {
+      document.getElementById('modal-cargo-templates').classList.add('hidden');
+    }
+
+    function renderTemplatesList() {
+      const container = document.getElementById('templates-list-container');
+      container.innerHTML = '';
+      
+      const allTemplates = [
+        ...PRESET_CARGO_TEMPLATES,
+        ...customCargoTemplates
+      ];
+
+      allTemplates.forEach(tpl => {
+        const isCustom = tpl.id.startsWith('custom-');
+        const card = document.createElement('div');
+        card.className = "bg-slate-50 hover:bg-indigo-50/50 p-3 rounded-lg border border-slate-200 transition space-y-1.5 flex justify-between items-center gap-3";
+        card.innerHTML = `
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800 text-xs">${tpl.name}</span>
+              <span class="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-1.5 py-0.2 rounded">${tpl.items.length} items</span>
+              ${isCustom ? '<span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1 rounded uppercase">Custom</span>' : ''}
+            </div>
+            <p class="text-[11px] text-slate-500">${tpl.desc || 'Reusable cargo assortment'}</p>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" onclick="loadCargoTemplate('${tpl.id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded shadow-sm transition">
+              Load Kit
+            </button>
+            ${isCustom ? `<button type="button" onclick="deleteCustomTemplate('${tpl.id}')" class="text-red-500 hover:text-red-700 p-1"><i class="fa-solid fa-trash-can text-xs"></i></button>` : ''}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function loadCargoTemplate(templateId) {
+      const allTemplates = [...PRESET_CARGO_TEMPLATES, ...customCargoTemplates];
+      const tpl = allTemplates.find(t => t.id === templateId);
+      if (!tpl) return;
+      const mode = document.querySelector('input[name="templateLoadMode"]:checked').value;
+      if (mode === 'replace') {
+        document.getElementById('items-container').innerHTML = '';
+      }
+      tpl.items.forEach(i => {
+        addPackingItem(i.desc, i.qty, i.unit, i.price || 0);
+      });
+      closeTemplatesModal();
+      recalculateItemsTotal();
+      updatePreview();
+    }
+
+    function saveCurrentItemsAsTemplatePrompt() {
+      const items = getPackingItemsFromForm();
+      if (items.length === 0) {
+        alert("Please add at least one packing item to save as a kit.");
+        return;
+      }
+      const name = prompt("Enter a name for this Cargo Kit / Template:", "40ft Container Spares Kit");
+      if (!name || !name.trim()) return;
+      
+      const newTpl = {
+        id: "custom-" + Date.now(),
+        name: name.trim().toUpperCase(),
+        desc: `Custom kit with ${items.length} items saved on ${new Date().toLocaleDateString()}`,
+        items: items
+      };
+      customCargoTemplates.push(newTpl);
+      localStorage.setItem('azad_custom_templates', JSON.stringify(customCargoTemplates));
+      alert(`Cargo Kit "${newTpl.name}" saved! You can load it anytime in 1 click.`);
+    }
+
+    function deleteCustomTemplate(id) {
+      if (!confirm("Are you sure you want to delete this custom kit?")) return;
+      customCargoTemplates = customCargoTemplates.filter(t => t.id !== id);
+      localStorage.setItem('azad_custom_templates', JSON.stringify(customCargoTemplates));
+      renderTemplatesList();
+    }
+
+    /* 5. WhatsApp & Smart Text Parser */
+    function openSmartTextModal() {
+      document.getElementById('smart-text-input').value = '';
+      document.getElementById('smart-text-count').textContent = '0 items detected';
+      document.getElementById('smart-text-preview-list').innerHTML = '<p class="text-slate-400 italic">Type or paste text above to see live preview...</p>';
+      document.getElementById('modal-smart-text').classList.remove('hidden');
+    }
+    function closeSmartTextModal() {
+      document.getElementById('modal-smart-text').classList.add('hidden');
+    }
+
+    function parseSmartText(text) {
+      if (!text || !text.trim()) return [];
+      // Clean up common bullet points & split lines or semicolons or commas
+      const rawLines = text.split(/\r?\n|;|(?<=\D),(?=\s*\d)/);
+      const results = [];
+      const unitRegex = /\b(PCS|PIECES|UNIT|UNITS|LOT|SETS?|CTNS?|CARTONS?|BAGS?|PKGS?|PAIRS?)\b/i;
+
+      rawLines.forEach(line => {
+        let clean = line.replace(/^[\s*\-•#\d+.)\]]+/g, '').trim();
+        if (!clean) return;
+
+        // Try extracting price: e.g. @ 150, $150, USD 150, - 150$
+        let price = 0;
+        const priceMatch = clean.match(/(@|\$|USD|US\$)\s*([0-9,.]+)|([0-9,.]+)\s*(\$|USD)/i);
+        if (priceMatch) {
+          const rawPrice = priceMatch[2] || priceMatch[3];
+          price = parseFloat(rawPrice.replace(/,/g, '')) || 0;
+          clean = clean.replace(priceMatch[0], '').trim();
+        }
+
+        // Try extracting unit
+        let unit = "PCS";
+        const unitMatch = clean.match(unitRegex);
+        if (unitMatch) {
+          unit = unitMatch[1].toUpperCase();
+          if (unit.startsWith('PIECE')) unit = 'PCS';
+          if (unit.startsWith('CARTON')) unit = 'CTNS';
+          clean = clean.replace(unitMatch[0], '').trim();
+        }
+
+        // Try extracting quantity: leading number or trailing number
+        let qty = 1;
+        const leadingQtyMatch = clean.match(/^([0-9,]+)\s*(x|\*|of|-)?\s*/i);
+        const trailingQtyMatch = clean.match(/[:\-=\s]+([0-9,]+)$/i);
+
+        if (leadingQtyMatch) {
+          qty = parseInt(leadingQtyMatch[1].replace(/,/g, ''), 10) || 1;
+          clean = clean.substring(leadingQtyMatch[0].length).trim();
+        } else if (trailingQtyMatch) {
+          qty = parseInt(trailingQtyMatch[1].replace(/,/g, ''), 10) || 1;
+          clean = clean.substring(0, clean.length - trailingQtyMatch[0].length).trim();
+        }
+
+        // Clean description
+        clean = clean.replace(/^[\-:=,\s]+|[\-:=,\s]+$/g, '').trim().toUpperCase();
+        if (clean.length > 1) {
+          results.push({ desc: clean, qty, unit, price });
+        }
+      });
+      return results;
+    }
+
+    function previewSmartText() {
+      const text = document.getElementById('smart-text-input').value;
+      const parsed = parseSmartText(text);
+      document.getElementById('smart-text-count').textContent = `${parsed.length} items detected`;
+      const previewContainer = document.getElementById('smart-text-preview-list');
+      
+      if (parsed.length === 0) {
+        previewContainer.innerHTML = '<p class="text-slate-400 italic">No recognized items yet...</p>';
+        return;
+      }
+      
+      let html = '<div class="space-y-1">';
+      parsed.forEach((item, idx) => {
+        html += `
+          <div class="flex justify-between items-center bg-white p-1 rounded border border-slate-200">
+            <span class="font-bold text-slate-800">${idx+1}. ${item.desc}</span>
+            <span class="text-emerald-700 font-bold">${item.qty} ${item.unit} ${item.price > 0 ? '($' + item.price + ')' : ''}</span>
+          </div>
+        `;
+      });
+      html += '</div>';
+      previewContainer.innerHTML = html;
+    }
+
+    function executeSmartTextImport() {
+      const text = document.getElementById('smart-text-input').value;
+      const parsed = parseSmartText(text);
+      if (parsed.length === 0) {
+        alert("No valid items detected. Please type or paste items.");
+        return;
+      }
+      const mode = document.querySelector('input[name="smartTextMode"]:checked').value;
+      if (mode === 'replace') {
+        document.getElementById('items-container').innerHTML = '';
+      }
+      parsed.forEach(p => {
+        addPackingItem(p.desc, p.qty, p.unit, p.price);
+      });
+      closeSmartTextModal();
+      recalculateItemsTotal();
+      updatePreview();
+    }
+
+    /* 6. Quick Catalog Checklist */
+    function openCatalogModal() {
+      document.getElementById('catalog-search-input').value = '';
+      renderCatalogGrid();
+      document.getElementById('modal-catalog-picker').classList.remove('hidden');
+    }
+    function closeCatalogModal() {
+      document.getElementById('modal-catalog-picker').classList.add('hidden');
+    }
+
+    function renderCatalogGrid(filter = '') {
+      const grid = document.getElementById('catalog-items-grid');
+      grid.innerHTML = '';
+      const list = autoSuggestionsList.filter(s => s.toLowerCase().includes(filter.toLowerCase()));
+
+      list.forEach((name, idx) => {
+        const itemRow = document.createElement('div');
+        itemRow.className = "flex items-center justify-between p-2 rounded border border-slate-200 bg-slate-50 hover:bg-amber-50/50 transition";
+        const isLot = name.includes('MIX') || name.includes('CARS');
+        const defaultUnit = isLot ? 'LOT' : 'PCS';
+        const defaultQty = 1;
+
+        itemRow.innerHTML = `
+          <label class="flex items-center gap-2 flex-1 cursor-pointer font-bold text-slate-800 text-[11px] truncate mr-2">
+            <input type="checkbox" class="cat-check accent-amber-600" onchange="updateCatalogCount()" value="${name}">
+            <span class="truncate" title="${name}">${name}</span>
+          </label>
+          <div class="flex items-center gap-1 shrink-0">
+            <button type="button" onclick="stepCatalogQty(this, -10)" class="text-slate-500 hover:text-black font-bold px-1 bg-white border rounded text-[10px]">-</button>
+            <input type="number" min="1" value="${defaultQty}" class="cat-qty w-12 text-center p-0.5 border border-slate-300 rounded font-bold text-xs bg-white">
+            <button type="button" onclick="stepCatalogQty(this, 10)" class="text-slate-500 hover:text-black font-bold px-1 bg-white border rounded text-[10px]">+</button>
+            <input type="text" value="${defaultUnit}" class="cat-unit w-10 text-center p-0.5 border border-slate-300 rounded font-semibold text-[10px] bg-white uppercase">
+          </div>
+        `;
+        grid.appendChild(itemRow);
+      });
+      updateCatalogCount();
+    }
+
+    function stepCatalogQty(btn, step) {
+      const parent = btn.parentElement;
+      const input = parent.querySelector('.cat-qty');
+      const check = parent.parentElement.querySelector('.cat-check');
+      let val = (parseInt(input.value, 10) || 0) + step;
+      if (val < 1) val = 1;
+      input.value = val;
+      check.checked = true;
+      updateCatalogCount();
+    }
+
+    function filterCatalogItems() {
+      const q = document.getElementById('catalog-search-input').value;
+      renderCatalogGrid(q);
+    }
+
+    function selectAllCatalog(selectAll) {
+      document.querySelectorAll('.cat-check').forEach(chk => chk.checked = selectAll);
+      updateCatalogCount();
+    }
+
+    function updateCatalogCount() {
+      const count = document.querySelectorAll('.cat-check:checked').length;
+      document.getElementById('catalog-selected-badge').textContent = `${count} item(s) selected`;
+    }
+
+    function executeCatalogInsert() {
+      const checkedBoxes = document.querySelectorAll('.cat-check:checked');
+      if (checkedBoxes.length === 0) {
+        alert("Please select at least one item from the catalog.");
+        return;
+      }
+      checkedBoxes.forEach(chk => {
+        const row = chk.closest('div');
+        const desc = chk.value;
+        const qty = parseInt(row.querySelector('.cat-qty').value, 10) || 1;
+        const unit = row.querySelector('.cat-unit').value.trim().toUpperCase() || 'PCS';
+        addPackingItem(desc, qty, unit, 0);
+      });
+      closeCatalogModal();
+      recalculateItemsTotal();
+      updatePreview();
+    }
+
+    /* 7. Copy Items from Past Invoice */
+    function openCopyInvoiceItemsModal() {
+      const select = document.getElementById('copy-invoice-select');
+      select.innerHTML = '<option value="">-- Choose an invoice to copy items from --</option>';
+      savedInvoices.forEach(inv => {
+        const count = (inv.packingItems && inv.packingItems.length) || 0;
+        const opt = document.createElement('option');
+        opt.value = inv.invoiceNo;
+        opt.textContent = `#${inv.invoiceNo} - ${inv.customerShipper || 'N/A'} (${count} items) [${inv.date || ''}]`;
+        select.appendChild(opt);
+      });
+      document.getElementById('copy-invoice-preview-box').innerHTML = '<p class="text-slate-400 italic">Select an invoice above to preview items...</p>';
+      document.getElementById('modal-copy-invoice-items').classList.remove('hidden');
+    }
+    function closeCopyInvoiceItemsModal() {
+      document.getElementById('modal-copy-invoice-items').classList.add('hidden');
+    }
+
+    function previewInvoiceItemsToCopy() {
+      const invNo = document.getElementById('copy-invoice-select').value;
+      const box = document.getElementById('copy-invoice-preview-box');
+      if (!invNo) {
+        box.innerHTML = '<p class="text-slate-400 italic">Select an invoice above...</p>';
+        return;
+      }
+      const inv = savedInvoices.find(i => i.invoiceNo === invNo);
+      if (!inv || !inv.packingItems || inv.packingItems.length === 0) {
+        box.innerHTML = '<p class="text-slate-400 italic">This invoice has no packing items.</p>';
+        return;
+      }
+      let html = `<div class="font-bold text-slate-700 mb-1 border-b pb-1 flex justify-between"><span>${inv.packingItems.length} Items Found</span><span>Customer: ${inv.customerShipper || ''}</span></div>`;
+      html += '<div class="space-y-1 font-mono text-[11px]">';
+      inv.packingItems.forEach(i => {
+        html += `<div class="flex justify-between border-b border-slate-100 py-0.5"><span>${i.desc}</span><span class="font-bold">${i.qty} ${i.unit}</span></div>`;
+      });
+      html += '</div>';
+      box.innerHTML = html;
+    }
+
+    function executeCopyInvoiceItems() {
+      const invNo = document.getElementById('copy-invoice-select').value;
+      if (!invNo) return;
+      const inv = savedInvoices.find(i => i.invoiceNo === invNo);
+      if (!inv || !inv.packingItems || inv.packingItems.length === 0) {
+        alert("Selected invoice has no packing items.");
+        return;
+      }
+      const mode = document.querySelector('input[name="copyInvoiceMode"]:checked').value;
+      if (mode === 'replace') {
+        document.getElementById('items-container').innerHTML = '';
+      }
+      inv.packingItems.forEach(i => {
+        addPackingItem(i.desc, i.qty, i.unit, i.price || 0);
+      });
+      closeCopyInvoiceItemsModal();
+      recalculateItemsTotal();
+      updatePreview();
+    }
 
     function initFirebaseCloud() {
       const btn = document.getElementById('btn-firebase-status');
@@ -2044,19 +2848,19 @@
     function addPackingItem(desc = '', qty = 1, unit = 'PCS', price = 0) {
       const container = document.getElementById('items-container');
       const itemRow = document.createElement('div');
-      itemRow.className = 'item-row grid grid-cols-12 gap-1 items-center bg-white p-1.5 rounded border border-slate-200 shadow-sm text-xs';
+      itemRow.className = 'item-row grid grid-cols-12 gap-1 items-center bg-white p-1.5 rounded border border-slate-200 shadow-sm text-xs transition';
       
       itemRow.innerHTML = `
         <div class="col-span-1 flex items-center justify-center font-bold text-slate-400 row-num">1</div>
         <div class="col-span-5">
-          <input type="text" value="${desc}" placeholder="Description" class="item-desc w-full text-xs p-1 border border-slate-300 rounded uppercase font-medium" oninput="updatePreview()">
+          <input type="text" list="suggestions-datalist" value="${desc}" placeholder="Description" class="item-desc w-full text-xs p-1 border border-slate-300 rounded uppercase font-medium" oninput="updatePreview()" onkeydown="handleItemKeyNav(event, this)">
         </div>
         <div class="col-span-2 flex gap-1">
-          <input type="number" value="${qty}" min="1" placeholder="Qty" class="item-qty w-14 text-xs p-1 border border-slate-300 rounded font-semibold text-center" oninput="recalculateItemsTotal(); updatePreview()">
-          <input type="text" value="${unit}" placeholder="Unit" class="item-unit w-10 text-xs p-1 border border-slate-300 rounded font-semibold text-center uppercase" oninput="updatePreview()">
+          <input type="number" value="${qty}" min="1" placeholder="Qty" class="item-qty w-14 text-xs p-1 border border-slate-300 rounded font-semibold text-center" oninput="recalculateItemsTotal(); updatePreview()" onkeydown="handleItemKeyNav(event, this)">
+          <input type="text" value="${unit}" placeholder="Unit" class="item-unit w-10 text-xs p-1 border border-slate-300 rounded font-semibold text-center uppercase" oninput="updatePreview()" onkeydown="handleItemKeyNav(event, this)">
         </div>
         <div class="col-span-2">
-          <input type="number" step="0.01" value="${price || ''}" placeholder="0.00" class="item-price w-full text-xs p-1 border border-slate-300 rounded font-semibold text-right" oninput="recalculateItemsTotal(); updatePreview()">
+          <input type="number" step="0.01" value="${price || ''}" placeholder="0.00" class="item-price w-full text-xs p-1 border border-slate-300 rounded font-semibold text-right" oninput="recalculateItemsTotal(); updatePreview()" onkeydown="handleItemKeyNav(event, this)">
         </div>
         <div class="col-span-2 flex items-center justify-end gap-1">
           <span class="item-line-total font-bold text-[10px] text-emerald-700 mr-1">$0</span>
@@ -2069,6 +2873,48 @@
       renumberItemRows();
       recalculateItemsTotal();
       updatePreview();
+      return itemRow;
+    }
+
+    /* Hands-free Keyboard Navigation: Enter creates row, Arrows move */
+    function handleItemKeyNav(e, input) {
+      const row = input.closest('.item-row');
+      const isLastField = input.classList.contains('item-price') || (input.classList.contains('item-qty') && (!row.querySelector('.item-price') || !row.querySelector('.item-price').offsetParent));
+      
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (isLastField || input.classList.contains('item-price')) {
+          // If on the last field, create next row and focus on description!
+          const newRow = addPackingItem('', 1, 'PCS', 0);
+          const newDesc = newRow.querySelector('.item-desc');
+          if (newDesc) {
+            newDesc.focus();
+            newDesc.select();
+          }
+        } else {
+          // Tab to next input inside the same row
+          const inputs = Array.from(row.querySelectorAll('input'));
+          const idx = inputs.indexOf(input);
+          if (idx !== -1 && idx < inputs.length - 1) {
+            inputs[idx + 1].focus();
+            inputs[idx + 1].select();
+          }
+        }
+      } else if (e.key === 'ArrowDown') {
+        const nextRow = row.nextElementSibling;
+        if (nextRow) {
+          const className = input.className.split(' ')[0];
+          const target = nextRow.querySelector('.' + className);
+          if (target) target.focus();
+        }
+      } else if (e.key === 'ArrowUp') {
+        const prevRow = row.previousElementSibling;
+        if (prevRow) {
+          const className = input.className.split(' ')[0];
+          const target = prevRow.querySelector('.' + className);
+          if (target) target.focus();
+        }
+      }
     }
 
     function moveItemRow(btn, direction) {
