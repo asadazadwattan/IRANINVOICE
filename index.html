@@ -569,6 +569,10 @@
               <input type="checkbox" id="toggle-incoterms-preview" checked onchange="toggleIncotermsPreview()" class="accent-amber-600">
               <span>Incoterms</span>
             </label>
+            <label class="flex items-center gap-1 text-xs font-semibold text-slate-600 cursor-pointer ml-1" title="Hide/Unhide Authorized Signature & Stamp">
+              <input type="checkbox" id="toggle-signature-preview" checked onchange="toggleSignaturePreview()" class="accent-amber-600">
+              <span>Signature</span>
+            </label>
             <label class="flex items-center gap-1 text-xs font-semibold text-slate-600 cursor-pointer ml-1">
               <input type="checkbox" id="toggle-qr-preview" checked onchange="toggleQRPreview()" class="accent-amber-600">
               <span>QR Code</span>
@@ -733,10 +737,15 @@
               </div>
 
               <!-- Signature Footer -->
-              <div class="text-right pb-1 pt-1">
+              <div id="prev-signature-block" class="text-right pb-1 pt-1 flex flex-col items-end">
                 <p id="prev-company-footer" class="font-bold text-[10px] uppercase">For AZAD WATTAN GENERAL TRDG. CO.</p>
-                <div class="h-8"></div>
-                <p class="text-[9px] text-slate-600">Authorized Signature</p>
+                <div id="prev-signature-content" class="flex flex-col items-end">
+                  <div id="prev-stamp-container" class="relative my-0.5 flex items-center justify-end" style="min-height: 44px;">
+                    <img id="prev-stamp-img" src="" alt="Official Stamp & Signature" class="object-contain drop-shadow-sm" style="display: none; height: 65px; max-width: 160px;">
+                    <div id="prev-stamp-blank" class="h-8 w-32"></div>
+                  </div>
+                  <p id="prev-auth-sig-label" class="text-[9px] text-slate-600 font-medium border-t border-slate-400 pt-0.5 min-w-[130px] text-center">Authorized Signature</p>
+                </div>
               </div>
             </div>
           </div>
@@ -891,6 +900,54 @@
           <div>
             <label class="block font-semibold text-slate-700 mb-1">SWIFT / BIC Code</label>
             <input type="text" id="set-bank-swift" class="w-full p-2 border rounded uppercase font-mono" placeholder="e.g. EBILAEADXXX">
+          </div>
+        </div>
+      </div>
+
+      <!-- Official Company Stamp & Signature -->
+      <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-4">
+        <div class="flex justify-between items-center flex-wrap gap-2 border-b pb-2">
+          <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-stamp text-amber-600"></i> Official Company Stamp &amp; Authorized Signature
+          </h3>
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 cursor-pointer">
+              <input type="checkbox" id="set-signature-enabled" checked onchange="onSignatureToggle()" class="accent-amber-600">
+              <span>Display Signature &amp; Stamp on Documents</span>
+            </label>
+            <span id="set-signature-badge" class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 uppercase">Visible</span>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500">Upload your official circular company stamp / seal and signature image (PNG format with transparent background recommended). It will be printed directly over "Authorized Signature" at the bottom right of documents.</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div class="border border-slate-200 rounded-lg p-3 space-y-2">
+            <label class="block font-semibold text-slate-700">Stamp &amp; Signature Image</label>
+            <div class="flex items-center gap-3">
+              <div id="set-stamp-preview-box" class="w-28 h-20 border border-slate-200 rounded bg-slate-50 flex items-center justify-center p-1 overflow-hidden">
+                <img id="set-stamp-preview" class="max-h-full max-w-full object-contain" style="display:none" alt="Stamp preview">
+                <span id="set-stamp-placeholder" class="text-[10px] text-slate-400 text-center italic">No stamp uploaded</span>
+              </div>
+              <div class="space-y-2 flex-1">
+                <input type="file" id="set-stamp-file" accept="image/*" onchange="onStampFileChange(this)" class="w-full text-xs">
+                <button type="button" onclick="removeStamp()" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded text-xs font-bold transition">Remove Stamp</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="border border-slate-200 rounded-lg p-3 space-y-3 flex flex-col justify-between">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Printed Stamp Size on Document</label>
+              <div class="flex items-center gap-2">
+                <input type="range" id="set-stamp-size" min="40" max="110" step="5" value="65" oninput="onStampSizeChange()" class="accent-amber-600 flex-1">
+                <span id="set-stamp-size-label" class="font-bold text-slate-700 w-12 text-right">65px</span>
+              </div>
+              <p class="text-[10px] text-slate-400 mt-1">Adjust height so the stamp fits naturally over the signature line.</p>
+            </div>
+            <div class="text-[11px] text-slate-500 bg-slate-50 p-2 rounded border border-slate-100 flex items-center gap-1.5">
+              <i class="fa-solid fa-circle-info text-amber-500"></i>
+              <span>You can also hide or unhide the signature anytime using the toolbar checkbox in the preview.</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1479,7 +1536,10 @@
       template: "template-classic", 
       docMode: "packing",
       showQRCode: true,
-      showIncoterms: true
+      showIncoterms: true,
+      showSignature: true,
+      stampDataUrl: "",
+      stampSize: 65
     };
 
     const DEFAULT_QTY_UNITS = ["PKGS", "CTNS", "BAGS", "LOT", "PCS", "UNITS", "SET"];
@@ -3286,6 +3346,30 @@
         }
       }
 
+      
+      // Authorized Signature & Stamp rendering
+      const showSig = appSettings.showSignature !== false;
+      const sigContent = document.getElementById('prev-signature-content');
+      const stampImg = document.getElementById('prev-stamp-img');
+      const stampBlank = document.getElementById('prev-stamp-blank');
+
+      if (sigContent) {
+        if (showSig) {
+          sigContent.style.display = 'flex';
+          if (appSettings.stampDataUrl) {
+            stampImg.src = appSettings.stampDataUrl;
+            stampImg.style.display = 'block';
+            stampImg.style.height = (appSettings.stampSize || 65) + 'px';
+            stampBlank.style.display = 'none';
+          } else {
+            stampImg.style.display = 'none';
+            stampBlank.style.display = 'block';
+          }
+        } else {
+          sigContent.style.display = 'none';
+        }
+      }
+
       // Update Verification QR Code
       updateQRCode({
         invoiceNo: invNo,
@@ -3730,6 +3814,9 @@
           if (typeof parsed.watermarkOpacity === 'number') appSettings.watermarkOpacity = parsed.watermarkOpacity;
           if (typeof parsed.showQRCode === 'boolean') appSettings.showQRCode = parsed.showQRCode;
           if (typeof parsed.showIncoterms === 'boolean') appSettings.showIncoterms = parsed.showIncoterms;
+          if (typeof parsed.showSignature === 'boolean') appSettings.showSignature = parsed.showSignature;
+          if (typeof parsed.stampDataUrl === 'string') appSettings.stampDataUrl = parsed.stampDataUrl;
+          if (typeof parsed.stampSize === 'number') appSettings.stampSize = parsed.stampSize;
           if (parsed.template) appSettings.template = parsed.template;
           if (parsed.docMode) appSettings.docMode = parsed.docMode;
         }
@@ -3811,6 +3898,36 @@
       setVal('set-default-final-destination', d.finalDestination);
       setVal('set-default-origin', d.origin);
       setVal('set-default-incoterms', d.incoterms || 'CIF - BANDAR ABBAS, IRAN');
+            // Signature & Stamp settings
+      const sigCheck = document.getElementById('set-signature-enabled');
+      if (sigCheck) {
+        sigCheck.checked = appSettings.showSignature !== false;
+        updateSignatureBadge(appSettings.showSignature !== false);
+      }
+      const sigPrevCheck = document.getElementById('toggle-signature-preview');
+      if (sigPrevCheck) {
+        sigPrevCheck.checked = appSettings.showSignature !== false;
+      }
+      const stampPrev = document.getElementById('set-stamp-preview');
+      const stampPlaceholder = document.getElementById('set-stamp-placeholder');
+      if (stampPrev && stampPlaceholder) {
+        if (appSettings.stampDataUrl) {
+          stampPrev.src = appSettings.stampDataUrl;
+          stampPrev.style.display = 'block';
+          stampPlaceholder.style.display = 'none';
+        } else {
+          stampPrev.style.display = 'none';
+          stampPlaceholder.style.display = 'block';
+        }
+      }
+      const stampSizeInput = document.getElementById('set-stamp-size');
+      const stampSizeLabel = document.getElementById('set-stamp-size-label');
+      if (stampSizeInput && stampSizeLabel) {
+        const sz = appSettings.stampSize || 65;
+        stampSizeInput.value = sz;
+        stampSizeLabel.textContent = sz + 'px';
+      }
+
       const incoCheck = document.getElementById('set-show-incoterms');
       if (incoCheck) {
         incoCheck.checked = appSettings.showIncoterms !== false;
@@ -3878,6 +3995,11 @@
       appSettings.docMode = document.getElementById('set-default-doc-mode').value;
       appSettings.watermarkEnabled = document.getElementById('set-watermark-enabled').checked;
       appSettings.watermarkOpacity = parseFloat(document.getElementById('set-watermark-opacity').value) || 0.05;
+            const setSigEl = document.getElementById('set-signature-enabled');
+      if (setSigEl) appSettings.showSignature = setSigEl.checked;
+      const stampSizeEl = document.getElementById('set-stamp-size');
+      if (stampSizeEl) appSettings.stampSize = parseInt(stampSizeEl.value, 10) || 65;
+
       const setIncoEl = document.getElementById('set-show-incoterms');
       if (setIncoEl) appSettings.showIncoterms = setIncoEl.checked;
       
@@ -3889,9 +4011,9 @@
 
     function resetSettings() {
       if (!confirm("Reset all settings to default values? Uploaded logo will be kept.")) return;
-      const logo = appSettings.logoDataUrl, wm = appSettings.watermarkDataUrl;
+      const logo = appSettings.logoDataUrl, wm = appSettings.watermarkDataUrl, stamp = appSettings.stampDataUrl;
       appSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-      appSettings.logoDataUrl = logo; appSettings.watermarkDataUrl = wm;
+      appSettings.logoDataUrl = logo; appSettings.watermarkDataUrl = wm; appSettings.stampDataUrl = stamp;
       saveSettings(); applySettings(); renderSettingsForm();
       document.getElementById('settings-status').textContent = 'Settings reset to defaults.';
     }
@@ -3913,6 +4035,75 @@
       };
       reader.readAsDataURL(file);
     }
+    
+    function onStampFileChange(input) {
+      const f = input.files && input.files[0];
+      if (!f) return;
+      handleImageUpload(f, 600, (dataUrl) => {
+        const old = appSettings.stampDataUrl;
+        appSettings.stampDataUrl = dataUrl;
+        try {
+          saveSettings();
+        } catch(e) {
+          appSettings.stampDataUrl = old;
+          return;
+        }
+        applySettings();
+        renderSettingsForm();
+        updatePreview();
+      });
+    }
+
+    function removeStamp() {
+      appSettings.stampDataUrl = '';
+      saveSettings();
+      applySettings();
+      renderSettingsForm();
+      updatePreview();
+    }
+
+    function onSignatureToggle() {
+      const isVisible = document.getElementById('set-signature-enabled').checked;
+      appSettings.showSignature = isVisible;
+      updateSignatureBadge(isVisible);
+      const sigPrev = document.getElementById('toggle-signature-preview');
+      if (sigPrev) sigPrev.checked = isVisible;
+      saveSettings();
+      updatePreview();
+    }
+
+    function toggleSignaturePreview() {
+      const isVisible = document.getElementById('toggle-signature-preview').checked;
+      appSettings.showSignature = isVisible;
+      const setCheck = document.getElementById('set-signature-enabled');
+      if (setCheck) setCheck.checked = isVisible;
+      updateSignatureBadge(isVisible);
+      saveSettings();
+      updatePreview();
+    }
+
+    function updateSignatureBadge(isVisible) {
+      const badge = document.getElementById('set-signature-badge');
+      if (badge) {
+        if (isVisible) {
+          badge.textContent = 'Visible';
+          badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 uppercase';
+        } else {
+          badge.textContent = 'Hidden';
+          badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700 uppercase';
+        }
+      }
+    }
+
+    function onStampSizeChange() {
+      const val = parseInt(document.getElementById('set-stamp-size').value, 10) || 65;
+      appSettings.stampSize = val;
+      const label = document.getElementById('set-stamp-size-label');
+      if (label) label.textContent = val + 'px';
+      saveSettings();
+      updatePreview();
+    }
+
     function onLogoFileChange(input) {
       const f = input.files && input.files[0]; if (!f) return;
       handleImageUpload(f, 800, (dataUrl) => {
