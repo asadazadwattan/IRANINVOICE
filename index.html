@@ -2271,6 +2271,8 @@
             saveInvoicesToStorage();
             renderInvoicesList();
             renderCustomersList();
+            renderCustomerOptions();   // <--- Instantly populates Customer dropdown on new device/browser
+            renderConsigneeOptions();  // <--- Instantly populates Consignee dropdown on new device/browser
             console.log("Real-time sync merged from Cloud Firestore.");
           }
         }, (error) => {
@@ -2278,6 +2280,35 @@
           btn.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-400"></i> Cloud Error — saved locally`;
           btn.className = "bg-red-950 text-red-400 text-xs font-semibold px-3 py-2 rounded-md flex items-center gap-1.5 border border-red-800 shadow";
         });
+
+        // Real-time Cloud Sync for Customers across all devices
+        db.collection('customers').onSnapshot((snapshot) => {
+          const cloudCusts = [];
+          snapshot.forEach((doc) => { cloudCusts.push(doc.data()); });
+          if (cloudCusts.length > 0) {
+            const merged = {};
+            customCustomers.forEach(c => { if (c.name) merged[c.name.toUpperCase().trim()] = c; });
+            cloudCusts.forEach(c => { if (c.name) merged[c.name.toUpperCase().trim()] = c; });
+            customCustomers = Object.values(merged);
+            localStorage.setItem('azad_custom_customers', JSON.stringify(customCustomers));
+            renderCustomerOptions();
+            renderCustomersList();
+          }
+        }, (err) => console.warn("Cloud customers listener note:", err));
+
+        // Real-time Cloud Sync for Consignees across all devices
+        db.collection('consignees').onSnapshot((snapshot) => {
+          const cloudCons = [];
+          snapshot.forEach((doc) => { cloudCons.push(doc.data()); });
+          if (cloudCons.length > 0) {
+            const merged = {};
+            customConsignees.forEach(c => { if (c.name) merged[c.name.toUpperCase().trim()] = c; });
+            cloudCons.forEach(c => { if (c.name) merged[c.name.toUpperCase().trim()] = c; });
+            customConsignees = Object.values(merged);
+            localStorage.setItem('azad_custom_consignees', JSON.stringify(customConsignees));
+            renderConsigneeOptions();
+          }
+        }, (err) => console.warn("Cloud consignees listener note:", err));
 
       } catch(e) {
         console.error("Firebase initialization failed:", e);
@@ -2495,17 +2526,67 @@
       updatePreview();
     }
 
-    /* Customer / Shipper Section */
+    /* Customer / Shipper Section with Multi-Device Cloud & Invoices Sync */
+    function getAllCustomers() {
+      const map = new Map();
+
+      // 1. Built-in presets
+      PRESET_CUSTOMERS.forEach(c => {
+        if (c.name) map.set(c.name.toUpperCase().trim(), { ...c, isPreset: true });
+      });
+
+      // 2. Custom registered customers (from directory/cloud)
+      customCustomers.forEach(c => {
+        if (c.name) {
+          const key = c.name.toUpperCase().trim();
+          const existing = map.get(key) || {};
+          map.set(key, { ...existing, ...c });
+        }
+      });
+
+      // 3. Customers from all saved invoices (cloud-synced across all devices & GitHub Pages!)
+      savedInvoices.forEach(inv => {
+        const name = (inv.customerShipper || '').toUpperCase().trim();
+        if (name && name !== 'UNKNOWN') {
+          if (!map.has(name)) {
+            map.set(name, {
+              id: 'cust-inv-' + name.replace(/[^A-Z0-9]/g, '_'),
+              name: name,
+              address: '',
+              phone: '',
+              tax: '',
+              email: '',
+              fromInvoice: true
+            });
+          }
+        }
+      });
+
+      return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    }
+
     function renderCustomerOptions() {
       const select = document.getElementById('customerSelect');
+      if (!select) return;
+      const currentVal = select.value || document.getElementById('customerShipper')?.value || '';
       select.innerHTML = '<option value="">-- Choose from Saved Customers --</option>';
-      const allCust = [...PRESET_CUSTOMERS, ...customCustomers];
+
+      const allCust = getAllCustomers();
       allCust.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c.name;
         opt.textContent = c.name + (c.address ? ` (${c.address})` : '');
         select.appendChild(opt);
       });
+
+      if (currentVal) {
+        for (let i = 0; i < select.options.length; i++) {
+          if (select.options[i].value.toUpperCase() === currentVal.toUpperCase()) {
+            select.selectedIndex = i;
+            break;
+          }
+        }
+      }
     }
 
     function onCustomerSelectChange() {
@@ -2546,6 +2627,11 @@
         customCustomers.push(data);
       }
       localStorage.setItem('azad_custom_customers', JSON.stringify(customCustomers));
+      if (db) {
+        db.collection('customers').doc(data.id).set(data)
+          .then(() => console.log("Customer saved to Cloud Firestore."))
+          .catch(err => console.warn("Cloud customer save note:", err));
+      }
       renderCustomerOptions();
       document.getElementById('customerSelect').value = name;
       document.getElementById('customerShipper').value = name;
@@ -2599,39 +2685,78 @@
       if (!confirm("Are you sure you want to remove this customer from directory?")) return;
       customCustomers = customCustomers.filter(x => x.id !== id);
       localStorage.setItem('azad_custom_customers', JSON.stringify(customCustomers));
+      if (db) {
+        db.collection('customers').doc(id).delete().catch(err => console.warn(err));
+      }
       renderCustomerOptions();
       openManageCustomers();
       renderCustomersList();
     }
 
     /* Consignee Section */
+    /* Consignees with Multi-Device Cloud & Invoices Sync */
+    function getAllConsignees() {
+      const map = new Map();
+
+      // 1. Built-in presets
+      PRESET_CONSIGNEES.forEach(c => {
+        if (c.name) map.set(c.name.toUpperCase().trim(), { ...c, isPreset: true });
+      });
+
+      // 2. Custom registered consignees
+      customConsignees.forEach(c => {
+        if (c.name) {
+          const key = c.name.toUpperCase().trim();
+          const existing = map.get(key) || {};
+          map.set(key, { ...existing, ...c });
+        }
+      });
+
+      // 3. Consignees from saved invoices (cloud-synced across all devices!)
+      savedInvoices.forEach(inv => {
+        if (inv.consignee && inv.consignee.name) {
+          const name = inv.consignee.name.toUpperCase().trim();
+          if (name && !map.has(name)) {
+            map.set(name, {
+              id: 'cons-inv-' + name.replace(/[^A-Z0-9]/g, '_'),
+              name: name,
+              address: inv.consignee.address || '',
+              mobile: inv.consignee.mobile || '',
+              fax: inv.consignee.fax || '',
+              nationalId: inv.consignee.nationalId || '',
+              email: inv.consignee.email || '',
+              extra: inv.consignee.extra || '',
+              fromInvoice: true
+            });
+          }
+        }
+      });
+
+      return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    }
+
     function renderConsigneeOptions() {
       const select = document.getElementById('consigneeSelect');
+      if (!select) return;
+      const currentVal = select.value || '';
       select.innerHTML = '';
-      const presetGroup = document.createElement('optgroup');
-      presetGroup.label = "Built-in Presets";
-      PRESET_CONSIGNEES.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.name; opt.textContent = c.name;
-        presetGroup.appendChild(opt);
-      });
-      select.appendChild(presetGroup);
 
-      if (customConsignees.length > 0) {
-        const customGroup = document.createElement('optgroup');
-        customGroup.label = "Custom Saved Consignees";
-        customConsignees.forEach(c => {
-          const opt = document.createElement('option');
-          opt.value = c.name; opt.textContent = c.name;
-          customGroup.appendChild(opt);
-        });
-        select.appendChild(customGroup);
+      const allCons = getAllConsignees();
+      allCons.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.name;
+        opt.textContent = c.name + (c.address ? ` (${c.address})` : '');
+        select.appendChild(opt);
+      });
+
+      if (currentVal && allCons.some(c => c.name === currentVal)) {
+        select.value = currentVal;
       }
     }
 
     function onConsigneeChange() {
       const selectedName = document.getElementById('consigneeSelect').value;
-      let allCons = [...PRESET_CONSIGNEES, ...customConsignees];
+      let allCons = getAllConsignees();
       let found = allCons.find(c => c.name === selectedName);
       if (found) {
         document.getElementById('consigneeAddress').value = found.address || '';
@@ -2640,6 +2765,7 @@
         let extraText = '';
         if (found.nationalId) extraText += `NAT ID: ${found.nationalId} `;
         if (found.email) extraText += `EMAIL: ${found.email}`;
+        if (found.extra && !extraText) extraText = found.extra;
         document.getElementById('consigneeExtra').value = extraText.trim();
       }
       updatePreview();
@@ -2677,6 +2803,12 @@
         customConsignees.push({ id: 'cust-' + Date.now(), ...consData });
       }
       localStorage.setItem('azad_custom_consignees', JSON.stringify(customConsignees));
+      if (db) {
+        const cId = editingConsigneeId || ('cust-cons-' + Date.now());
+        db.collection('consignees').doc(cId).set({ id: cId, ...consData })
+          .then(() => console.log("Consignee saved to Cloud Firestore."))
+          .catch(err => console.warn("Cloud consignee save note:", err));
+      }
       renderConsigneeOptions();
       document.getElementById('consigneeSelect').value = name;
       onConsigneeChange();
@@ -2719,6 +2851,9 @@
       if (!confirm(`Delete consignee "${c.name}"? Saved invoices keep their own copy of these details.`)) return;
       customConsignees = customConsignees.filter((x) => x.id !== id);
       localStorage.setItem('azad_custom_consignees', JSON.stringify(customConsignees));
+      if (db) {
+        db.collection('consignees').doc(id).delete().catch(err => console.warn(err));
+      }
       renderConsigneeOptions();
       if (document.getElementById('consigneeSelect').value === c.name) {
         document.getElementById('consigneeSelect').value = PRESET_CONSIGNEES[0].name;
@@ -3478,10 +3613,33 @@
         packingItems: getPackingItemsFromForm()
       };
 
+      // Auto-register customer to directory and cloud so they appear in dropdown on all devices
+      const custName = invoiceData.customerShipper;
+      if (custName && custName !== 'UNKNOWN') {
+        const allKnown = getAllCustomers();
+        const exists = allKnown.some(c => c.name.toUpperCase() === custName.toUpperCase());
+        if (!exists) {
+          const newCust = {
+            id: 'cust-' + Date.now(),
+            name: custName,
+            address: '',
+            phone: '',
+            tax: '',
+            email: ''
+          };
+          customCustomers.push(newCust);
+          localStorage.setItem('azad_custom_customers', JSON.stringify(customCustomers));
+          if (db) {
+            db.collection('customers').doc(newCust.id).set(newCust).catch(e => {});
+          }
+        }
+      }
+
       if (existingIndex >= 0) { savedInvoices[existingIndex] = invoiceData; }
       else { savedInvoices.unshift(invoiceData); }
       editingInvoiceNo = invNo;
       saveInvoicesToStorage();
+      renderCustomerOptions();
 
       if (db) {
         db.collection('invoices').doc(invNo).set(invoiceData)
